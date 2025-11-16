@@ -108,69 +108,527 @@ footer{margin-top:40px;text-align:center;color:var(--muted);font-size:12px;paddi
 </div>
 </div>
 <script>
-const STATE={currentUser:null,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],pda:[],llamadas:[],bolo:[],alertas:[]}};
+// IMPORTANTE: Este código usa window.storage de Claude.ai
+// Si vas a usarlo en tu servidor, necesitas reemplazar las funciones loadData/saveData
+// con tu propia implementación (localStorage, base de datos, etc.)
+
+const STATE={currentUser:null,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],llamadas:[],bolo:[],alertas:[],auditoria:[]}};
 const $=(s,r=document)=>r.querySelector(s),html=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function loadData(k){try{const r=await window.storage.get(k,true);return r?JSON.parse(r.value):[]}catch(e){return[]}}
-async function saveData(k,d){try{await window.storage.set(k,JSON.stringify(d),true);showNotif('✓ Datos guardados','success');await loadAllData()}catch(e){showNotif('✗ Error','error')}}
-async function loadAllData(){STATE.data.usuarios=await loadData('usuarios');STATE.data.ciudadanos=await loadData('ciudadanos');STATE.data.multas=await loadData('multas');STATE.data.arrestos=await loadData('arrestos');STATE.data.vehiculos=await loadData('vehiculos');STATE.data.denuncias=await loadData('denuncias');STATE.data.investigaciones=await loadData('investigaciones');STATE.data.pda=await loadData('pda');STATE.data.llamadas=await loadData('llamadas');STATE.data.bolo=await loadData('bolo');STATE.data.alertas=await loadData('alertas');updateCardBadges()}
-function showNotif(m,t='info'){const n=document.createElement('div');n.style.cssText=`position:fixed;top:80px;right:20px;z-index:10000;padding:14px 24px;border-radius:10px;background:${t==='success'?'linear-gradient(90deg,#10b981,#059669)':'linear-gradient(90deg,#ef4444,#dc2626)'};color:white;font-weight:700;box-shadow:0 10px 40px rgba(0,0,0,0.6)`;n.textContent=m;document.body.appendChild(n);setTimeout(()=>n.remove(),3000)}
-function updateCardBadges(){const b={ciudadanos:STATE.data.ciudadanos.length,multas:STATE.data.multas.length,arrestos:STATE.data.arrestos.length,vehiculos:STATE.data.vehiculos.length,denuncias:STATE.data.denuncias.length,investigaciones:STATE.data.investigaciones.length,pda:STATE.data.pda.length,llamadas:STATE.data.llamadas.length,bolo:STATE.data.bolo.length,alertas:STATE.data.alertas.length};Object.keys(b).forEach(id=>{const c=document.querySelector(`[data-card="${id}"]`);if(c&&b[id]>0){let badge=c.querySelector('.badge');if(!badge){badge=document.createElement('div');badge.className='badge';c.appendChild(badge)}badge.textContent=b[id]}})}
-async function initAdmin(){const u=await loadData('usuarios');if(u.length===0)await saveData('usuarios',[{id:1,username:'admin',password:'admin123',nombre:'Administrador del Sistema',rol:'admin',placa:'ADMIN-001',onDuty:false,fechaCreacion:new Date().toISOString()}])}
-const CARDS=[{id:'pda',title:'PDA / Fichas',desc:'Buscar y crear fichas',icon:'🚓'},{id:'llamadas',title:'Llamadas',desc:'Dispatch / Gestión',icon:'📞'},{id:'ciudadanos',title:'Ciudadanos',desc:'Base de datos',icon:'👤'},{id:'buscar',title:'Búsqueda',desc:'Consultar registros',icon:'🔍'},{id:'multas',title:'Multas',desc:'Infracciones',icon:'📋'},{id:'arrestos',title:'Arrestos',desc:'Detenciones',icon:'⛓️'},{id:'vehiculos',title:'Vehículos',desc:'Registro vehicular',icon:'🚗'},{id:'bolo',title:'BOLO / Wanted',desc:'Personas buscadas',icon:'🚨'},{id:'denuncias',title:'Denuncias',desc:'Reportes ciudadanos',icon:'📝'},{id:'investigaciones',title:'Investigaciones',desc:'Casos activos',icon:'🔬'},{id:'alertas',title:'Alertas',desc:'Alertas activas',icon:'⚠️'},{id:'codigos',title:'Códigos',desc:'Señales policiales',icon:'📡'},{id:'admin',title:'Administración',desc:'Gestión de usuarios',icon:'⚙️',adminOnly:true}];
-function renderCards(){const g=$('#cardsGrid');g.innerHTML='';CARDS.forEach(c=>{if(c.adminOnly&&(!STATE.currentUser||STATE.currentUser.rol!=='admin'))return;const e=document.createElement('div');e.className='card';e.setAttribute('data-card',c.id);e.innerHTML=`<div class="icon">${c.icon}</div><div class="title">${c.title}</div><div class="desc">${c.desc}</div>`;e.onclick=()=>openPanel(c.id);g.appendChild(e)});updateCardBadges()}
-function openPanel(id){const a=$('#expandedArea');a.innerHTML='';const p=document.createElement('div');p.className='expanded';a.appendChild(p);switch(id){case'pda':renderPDA(p);break;case'llamadas':renderLlamadas(p);break;case'ciudadanos':renderCiudadanos(p);break;case'buscar':renderBuscar(p);break;case'multas':renderMultas(p);break;case'arrestos':renderArrestos(p);break;case'vehiculos':renderVehiculos(p);break;case'bolo':renderBOLO(p);break;case'denuncias':renderDenuncias(p);break;case'investigaciones':renderInvestigaciones(p);break;case'alertas':renderAlertas(p);break;case'codigos':renderCodigos(p);break;case'admin':renderAdmin(p);break}p.scrollIntoView({behavior:'smooth'})}
-function renderPDA(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🚓 PDA / Fichas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchPDA" placeholder="Buscar..." style="margin-bottom:12px"><div id="listPDA" class="list"></div></div><div><strong>Nueva Ficha</strong><div class="flex flex-col gap-2 mt-3"><textarea id="pdaTexto" placeholder="Contenido..."></textarea><button class="btn" onclick="crearPDA()">Crear</button></div></div></div>`;loadPDA();$('#searchPDA').oninput=loadPDA}
-function loadPDA(){const l=$('#listPDA');if(!l)return;const q=($('#searchPDA')?.value||'').toLowerCase();const items=STATE.data.pda.filter(p=>(p.texto||'').toLowerCase().includes(q));const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=items.length?items.map(p=>`<div class="item"><div style="flex:1"><div>${html((p.texto||'').slice(0,80))}...</div><div class="muted tiny mt-2">${html(p.oficialRegistro||'—')} • ${new Date(p.fecha).toLocaleDateString()}</div></div><div class="flex gap-2">${isA?`<button class="btn-danger btn-ghost" onclick="eliminarPDA(${p.id})">X</button>`:''}</div></div>`).join(''):'<div class="muted small">Sin fichas</div>'}
-async function crearPDA(){const t=$('#pdaTexto')?.value.trim();if(!t)return showNotif('Escriba contenido','error');STATE.data.pda.push({id:Date.now(),texto:t,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});await saveData('pda',STATE.data.pda);$('#pdaTexto').value='';loadPDA()}
-async function eliminarPDA(id){if(!confirm('¿Eliminar?'))return;STATE.data.pda=STATE.data.pda.filter(p=>p.id!==id);await saveData('pda',STATE.data.pda);loadPDA()}
-function renderLlamadas(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📞 Llamadas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listLlamadas" class="list"></div></div><div><strong>Nueva Llamada</strong><div class="flex flex-col gap-2 mt-3"><input id="llRemitente" placeholder="Remitente (opcional)"><textarea id="llMensaje" placeholder="Mensaje..."></textarea><button class="btn" onclick="crearLlamada()">Crear</button></div></div></div>`;loadLlamadas()}
-function loadLlamadas(){const l=$('#listLlamadas');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.llamadas.length?STATE.data.llamadas.map(ll=>`<div class="item"><div style="flex:1"><strong>${html(ll.remitente||'Anónimo')}</strong><div class="muted small mt-2">${html(ll.mensaje)}</div><div class="muted tiny">${new Date(ll.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarLlamada(${ll.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin llamadas</div>'}
-async function crearLlamada(){const m=$('#llMensaje')?.value.trim();if(!m)return showNotif('Escriba mensaje','error');STATE.data.llamadas.push({id:Date.now(),remitente:$('#llRemitente')?.value||'Anónimo',mensaje:m,fecha:new Date().toISOString()});await saveData('llamadas',STATE.data.llamadas);$('#llRemitente').value='';$('#llMensaje').value='';loadLlamadas()}
-async function eliminarLlamada(id){if(!confirm('¿Eliminar?'))return;STATE.data.llamadas=STATE.data.llamadas.filter(ll=>ll.id!==id);await saveData('llamadas',STATE.data.llamadas);loadLlamadas()}
-function renderCiudadanos(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">👤 Ciudadanos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchCiu" placeholder="Buscar..." style="margin-bottom:12px"><div id="listCiu" class="list"></div></div><div><strong>Nuevo</strong><div class="flex flex-col gap-2 mt-3"><input id="cNombre" placeholder="Nombre *"><input id="cDNI" placeholder="DNI *"><input id="cFecha" type="date"><input id="cDir" placeholder="Dirección"><input id="cTel" placeholder="Teléfono"><button class="btn" onclick="crearCiu()">Registrar</button></div></div></div>`;loadCiu();$('#searchCiu').oninput=loadCiu}
-function loadCiu(){const l=$('#listCiu');if(!l)return;const q=($('#searchCiu')?.value||'').toLowerCase();const items=STATE.data.ciudadanos.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.dni||'').toLowerCase().includes(q));const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=items.length?items.map(c=>`<div class="item"><div style="flex:1"><strong>${html(c.nombre)}</strong><div class="muted small">DNI: ${html(c.dni)}${c.telefono?' • '+html(c.telefono):''}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarCiu(${c.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin ciudadanos</div>'}
-async function crearCiu(){const n=$('#cNombre')?.value.trim(),d=$('#cDNI')?.value.trim();if(!n||!d)return showNotif('Complete campos','error');STATE.data.ciudadanos.push({id:Date.now(),nombre:n,dni:d,fechaNacimiento:$('#cFecha')?.value,direccion:$('#cDir')?.value,telefono:$('#cTel')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fechaRegistro:new Date().toISOString()});await saveData('ciudadanos',STATE.data.ciudadanos);$('#cNombre').value=$('#cDNI').value=$('#cFecha').value=$('#cDir').value=$('#cTel').value='';loadCiu()}
-async function eliminarCiu(id){if(!confirm('¿Eliminar?'))return;STATE.data.ciudadanos=STATE.data.ciudadanos.filter(c=>c.id!==id);await saveData('ciudadanos',STATE.data.ciudadanos);loadCiu()}
-function renderBuscar(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🔍 Búsqueda Global</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><input id="globalSearch" placeholder="Buscar..." style="font-size:16px;padding:14px;margin-bottom:16px"><div id="searchResults"></div>`;$('#globalSearch').oninput=()=>{const q=$('#globalSearch').value.toLowerCase(),r=$('#searchResults');if(q.length<2){r.innerHTML='<div class="muted small">Escriba al menos 2 caracteres</div>';return}const c=STATE.data.ciudadanos.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q)),m=STATE.data.multas.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q)),a=STATE.data.arrestos.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q)),v=STATE.data.vehiculos.filter(x=>(x.matricula||'').toLowerCase().includes(q)||(x.propietarioNombre||'').toLowerCase().includes(q));let h='';if(c.length)h+=`<h4>👤 Ciudadanos (${c.length})</h4><div class="list">${c.slice(0,5).map(x=>`<div class="item"><strong>${x.nombre}</strong><div class="muted small">DNI: ${x.dni}</div></div>`).join('')}</div>`;if(m.length)h+=`<h4 style="margin-top:16px">📋 Multas (${m.length})</h4><div class="list">${m.slice(0,5).map(x=>`<div class="item"><strong>${x.nombre}</strong><div class="muted small">${x.tipo} - $${x.importe}</div></div>`).join('')}</div>`;if(a.length)h+=`<h4 style="margin-top:16px">⛓️ Arrestos (${a.length})</h4><div class="list">${a.slice(0,5).map(x=>`<div class="item"><strong>${x.nombre}</strong><div class="muted small">${x.cargo}</div></div>`).join('')}</div>`;if(v.length)h+=`<h4 style="margin-top:16px">🚗 Vehículos (${v.length})</h4><div class="list">${v.slice(0,5).map(x=>`<div class="item"><strong>${x.matricula}</strong><div class="muted small">${x.marca} ${x.modelo}</div></div>`).join('')}</div>`;r.innerHTML=h||'<div class="muted small">Sin resultados</div>'}}
-function renderMultas(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📋 Multas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listMultas" class="list"></div></div><div><strong>Nueva Multa</strong><div class="flex flex-col gap-2 mt-3"><input id="mDNI" placeholder="DNI *"><input id="mNombre" placeholder="Nombre *"><select id="mTipo"><option>Exceso de velocidad</option><option>Estacionamiento indebido</option><option>Conducción temeraria</option><option>Conducir bajo efectos</option><option>Documentación irregular</option></select><input id="mImporte" type="number" placeholder="Importe *"><textarea id="mDesc" placeholder="Descripción..."></textarea><button class="btn" onclick="crearMulta()">Registrar</button></div></div></div>`;loadMultas()}
-function loadMultas(){const l=$('#listMultas');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.multas.length?STATE.data.multas.map(m=>`<div class="item"><div style="flex:1"><strong>${html(m.nombre)}</strong><div class="muted small">${html(m.tipo)} - $${m.importe}</div><div class="muted tiny">${new Date(m.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarMulta(${m.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin multas</div>'}
-async function crearMulta(){const d=$('#mDNI')?.value.trim(),n=$('#mNombre')?.value.trim(),t=$('#mTipo').value,i=$('#mImporte')?.value;if(!d||!n||!t||!i)return showNotif('Complete campos','error');STATE.data.multas.push({id:Date.now(),dni:d,nombre:n,tipo:t,importe:i,descripcion:$('#mDesc')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});await saveData('multas',STATE.data.multas);$('#mDNI').value=$('#mNombre').value=$('#mImporte').value=$('#mDesc').value='';loadMultas()}
-async function eliminarMulta(id){if(!confirm('¿Eliminar?'))return;STATE.data.multas=STATE.data.multas.filter(m=>m.id!==id);await saveData('multas',STATE.data.multas);loadMultas()}
-function renderArrestos(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">⛓️ Arrestos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listArrestos" class="list"></div></div><div><strong>Nuevo Arresto</strong><div class="flex flex-col gap-2 mt-3"><input id="aDNI" placeholder="DNI *"><input id="aNombre" placeholder="Nombre *"><select id="aCargo"><option>Robo</option><option>Asalto</option><option>Homicidio</option><option>Narcotráfico</option><option>Secuestro</option><option>Fraude</option></select><input id="aTiempo" type="number" placeholder="Meses"><textarea id="aDetalles" placeholder="Detalles..."></textarea><button class="btn" onclick="crearArresto()">Registrar</button></div></div></div>`;loadArrestos()}
-function loadArrestos(){const l=$('#listArrestos');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.arrestos.length?STATE.data.arrestos.map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.nombre)}</strong><div class="muted small">${html(a.cargo)}${a.tiempo?' - '+a.tiempo+' meses':''}</div><div class="muted tiny">${new Date(a.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarArresto(${a.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin arrestos</div>'}
-async function crearArresto(){const d=$('#aDNI')?.value.trim(),n=$('#aNombre')?.value.trim(),c=$('#aCargo').value;if(!d||!n||!c)return showNotif('Complete campos','error');STATE.data.arrestos.push({id:Date.now(),dni:d,nombre:n,cargo:c,tiempo:$('#aTiempo')?.value,detalles:$('#aDetalles')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});await saveData('arrestos',STATE.data.arrestos);$('#aDNI').value=$('#aNombre').value=$('#aTiempo').value=$('#aDetalles').value='';loadArrestos()}
-async function eliminarArresto(id){if(!confirm('¿Eliminar?'))return;STATE.data.arrestos=STATE.data.arrestos.filter(a=>a.id!==id);await saveData('arrestos',STATE.data.arrestos);loadArrestos()}
-function renderVehiculos(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🚗 Vehículos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listVehiculos" class="list"></div></div><div><strong>Nuevo Vehículo</strong><div class="flex flex-col gap-2 mt-3"><input id="vMatricula" placeholder="Matrícula *"><input id="vMarca" placeholder="Marca *"><input id="vModelo" placeholder="Modelo"><input id="vColor" placeholder="Color"><input id="vPropDNI" placeholder="DNI Propietario"><input id="vPropNombre" placeholder="Nombre Propietario"><button class="btn" onclick="crearVehiculo()">Registrar</button></div></div></div>`;loadVehiculos()}
-function loadVehiculos(){const l=$('#listVehiculos');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.vehiculos.length?STATE.data.vehiculos.map(v=>`<div class="item"><div style="flex:1"><strong>${html(v.matricula)}</strong><div class="muted small">${html(v.marca)} ${html(v.modelo)} - ${html(v.color)}</div>${v.propietarioNombre?`<div class="muted tiny">Prop: ${html(v.propietarioNombre)}</div>`:''}</div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarVehiculo(${v.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin vehículos</div>'}
-async function crearVehiculo(){const m=$('#vMatricula')?.value.trim(),ma=$('#vMarca')?.value.trim();if(!m||!ma)return showNotif('Complete campos','error');STATE.data.vehiculos.push({id:Date.now(),matricula:m,marca:ma,modelo:$('#vModelo')?.value,color:$('#vColor')?.value,propietarioDNI:$('#vPropDNI')?.value,propietarioNombre:$('#vPropNombre')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fechaRegistro:new Date().toISOString()});await saveData('vehiculos',STATE.data.vehiculos);$('#vMatricula').value=$('#vMarca').value=$('#vModelo').value=$('#vColor').value=$('#vPropDNI').value=$('#vPropNombre').value='';loadVehiculos()}
-async function eliminarVehiculo(id){if(!confirm('¿Eliminar?'))return;STATE.data.vehiculos=STATE.data.vehiculos.filter(v=>v.id!==id);await saveData('vehiculos',STATE.data.vehiculos);loadVehiculos()}
-function renderBOLO(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🚨 BOLO / Wanted</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listBOLO" class="list"></div></div><div><strong>Nuevo BOLO</strong><div class="flex flex-col gap-2 mt-3"><input id="bNombre" placeholder="Nombre *"><input id="bDNI" placeholder="DNI"><textarea id="bMotivo" placeholder="Motivo *"></textarea><select id="bNivel"><option>Nivel Bajo</option><option>Nivel Medio</option><option>Nivel Alto</option><option>Nivel Crítico</option></select><button class="btn" onclick="crearBOLO()">Registrar</button></div></div></div>`;loadBOLO()}
-function loadBOLO(){const l=$('#listBOLO');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.bolo.length?STATE.data.bolo.map(b=>`<div class="item"><div style="flex:1"><strong>${html(b.nombre)}</strong><div class="muted small">${html(b.motivo)}</div><div class="muted tiny">${html(b.nivel)} • ${new Date(b.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarBOLO(${b.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin BOLOs</div>'}
-async function crearBOLO(){const n=$('#bNombre')?.value.trim(),m=$('#bMotivo')?.value.trim();if(!n||!m)return showNotif('Complete campos','error');STATE.data.bolo.push({id:Date.now(),nombre:n,dni:$('#bDNI')?.value,motivo:m,nivel:$('#bNivel').value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});await saveData('bolo',STATE.data.bolo);$('#bNombre').value=$('#bDNI').value=$('#bMotivo').value='';loadBOLO()}
-async function eliminarBOLO(id){if(!confirm('¿Eliminar?'))return;STATE.data.bolo=STATE.data.bolo.filter(b=>b.id!==id);await saveData('bolo',STATE.data.bolo);loadBOLO()}
-function renderDenuncias(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📝 Denuncias</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listDenuncias" class="list"></div></div><div><strong>Nueva Denuncia</strong><div class="flex flex-col gap-2 mt-3"><input id="dRemitente" placeholder="Remitente"><input id="dTitulo" placeholder="Título *"><textarea id="dDescripcion" placeholder="Descripción *"></textarea><input id="dUbicacion" placeholder="Ubicación"><button class="btn" onclick="crearDenuncia()">Registrar</button></div></div></div>`;loadDenuncias()}
-function loadDenuncias(){const l=$('#listDenuncias');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.denuncias.length?STATE.data.denuncias.map(d=>`<div class="item"><div style="flex:1"><strong>${html(d.titulo)}</strong><div class="muted small">${html((d.descripcion||'').slice(0,100))}</div><div class="muted tiny">${html(d.remitente||'Anónimo')} • ${new Date(d.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarDenuncia(${d.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin denuncias</div>'}
-async function crearDenuncia(){const t=$('#dTitulo')?.value.trim(),de=$('#dDescripcion')?.value.trim();if(!t||!de)return showNotif('Complete campos','error');STATE.data.denuncias.push({id:Date.now(),titulo:t,descripcion:de,remitente:$('#dRemitente')?.value||'Anónimo',ubicacion:$('#dUbicacion')?.value,estado:'Abierta',oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});await saveData('denuncias',STATE.data.denuncias);$('#dRemitente').value=$('#dTitulo').value=$('#dDescripcion').value=$('#dUbicacion').value='';loadDenuncias()}
-async function eliminarDenuncia(id){if(!confirm('¿Eliminar?'))return;STATE.data.denuncias=STATE.data.denuncias.filter(d=>d.id!==id);await saveData('denuncias',STATE.data.denuncias);loadDenuncias()}
-function renderInvestigaciones(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🔬 Investigaciones</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listInv" class="list"></div></div><div><strong>Nueva Investigación</strong><div class="flex flex-col gap-2 mt-3"><input id="iTitulo" placeholder="Título *"><textarea id="iDescripcion" placeholder="Descripción *"></textarea><select id="iEstado"><option>En Progreso</option><option>Suspendida</option><option>Cerrada</option></select><button class="btn" onclick="crearInv()">Registrar</button></div></div></div>`;loadInv()}
-function loadInv(){const l=$('#listInv');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.investigaciones.length?STATE.data.investigaciones.map(i=>`<div class="item"><div style="flex:1"><strong>${html(i.titulo)}</strong><div class="muted small">${html((i.descripcion||'').slice(0,100))}</div><div class="muted tiny">${html(i.estado)} • ${new Date(i.fechaInicio).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarInv(${i.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin investigaciones</div>'}
-async function crearInv(){const t=$('#iTitulo')?.value.trim(),de=$('#iDescripcion')?.value.trim();if(!t||!de)return showNotif('Complete campos','error');STATE.data.investigaciones.push({id:Date.now(),titulo:t,descripcion:de,estado:$('#iEstado').value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fechaInicio:new Date().toISOString()});await saveData('investigaciones',STATE.data.investigaciones);$('#iTitulo').value=$('#iDescripcion').value='';loadInv()}
-async function eliminarInv(id){if(!confirm('¿Eliminar?'))return;STATE.data.investigaciones=STATE.data.investigaciones.filter(i=>i.id!==id);await saveData('investigaciones',STATE.data.investigaciones);loadInv()}
-function renderAlertas(p){p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">⚠️ Alertas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listAlertas" class="list"></div></div><div><strong>Nueva Alerta</strong><div class="flex flex-col gap-2 mt-3"><input id="alTitulo" placeholder="Título *"><textarea id="alMensaje" placeholder="Mensaje *"></textarea><select id="alNivel"><option value="verde">Verde</option><option value="amarilla">Amarilla</option><option value="roja">Roja</option></select><button class="btn" onclick="crearAlerta()">Crear</button></div></div></div>`;loadAlertas()}
-function loadAlertas(){const l=$('#listAlertas');if(!l)return;const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';l.innerHTML=STATE.data.alertas.length?STATE.data.alertas.map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.titulo)}</strong><div class="muted small">${html(a.mensaje)}</div><div class="muted tiny">${html(a.nivel)} • ${new Date(a.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarAlerta(${a.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin alertas</div>'}
-async function crearAlerta(){const t=$('#alTitulo')?.value.trim(),m=$('#alMensaje')?.value.trim();if(!t||!m)return showNotif('Complete campos','error');STATE.data.alertas.push({id:Date.now(),titulo:t,mensaje:m,nivel:$('#alNivel').value,autor:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});await saveData('alertas',STATE.data.alertas);$('#alTitulo').value=$('#alMensaje').value='';loadAlertas()}
-async function eliminarAlerta(id){if(!confirm('¿Eliminar?'))return;STATE.data.alertas=STATE.data.alertas.filter(a=>a.id!==id);await saveData('alertas',STATE.data.alertas);loadAlertas()}
-function renderCodigos(p){const codigos=[{code:'10-4',desc:'Mensaje recibido'},{code:'10-6',desc:'Ocupado'},{code:'10-8',desc:'En servicio'},{code:'10-15',desc:'Detenido'},{code:'10-20',desc:'Ubicación'},{code:'10-23',desc:'En posición'},{code:'10-31',desc:'Crimen en progreso'},{code:'10-32',desc:'Persona armada'},{code:'10-99',desc:'Oficial caído'},{code:'Código 0',desc:'Oficial en peligro'},{code:'Código 1',desc:'Situación bajo control'},{code:'Código 2',desc:'Respuesta urgente'},{code:'Código 3',desc:'Respuesta de emergencia'},{code:'Código 4',desc:'No se requiere asistencia'}];p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📡 Códigos Policiales</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${codigos.map(c=>`<div class="item" style="text-align:center;padding:20px;cursor:pointer" onclick="showNotif('${c.code}: ${c.desc}','info')"><div style="font-size:24px;font-weight:900;color:var(--accent);margin-bottom:8px">${c.code}</div><div class="muted small">${c.desc}</div></div>`).join('')}</div>`}
-function renderAdmin(p){if(!STATE.currentUser||STATE.currentUser.rol!=='admin'){p.innerHTML='<div class="item"><strong>Acceso Denegado</strong><div class="muted small">Solo administradores</div></div>';return}p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">⚙️ Administración</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><strong>Usuarios del Sistema</strong><div id="listUsuarios" class="list" style="margin-top:12px"></div></div><div><strong>Crear Usuario</strong><div class="flex flex-col gap-2 mt-3"><input id="uUsername" placeholder="Usuario *"><input id="uPassword" type="password" placeholder="Contraseña *"><input id="uNombre" placeholder="Nombre *"><input id="uPlaca" placeholder="Placa"><select id="uRol"><option value="oficial">Oficial</option><option value="sargento">Sargento</option><option value="admin">Administrador</option></select><button class="btn" onclick="crearUsuario()">Crear</button></div></div></div>`;loadUsuarios()}
-function loadUsuarios(){const l=$('#listUsuarios');if(!l)return;l.innerHTML=STATE.data.usuarios.length?STATE.data.usuarios.map(u=>`<div class="item"><div style="flex:1"><strong>${html(u.nombre)}</strong><div class="muted small">Usuario: ${html(u.username)} • Rol: ${html(u.rol)}${u.placa?' • Placa: '+html(u.placa):''}</div></div><button class="btn-danger btn-ghost" onclick="eliminarUsuario(${u.id})" ${u.username==='admin'?'disabled':''}>${u.username==='admin'?'Protegido':'Eliminar'}</button></div>`).join(''):'<div class="muted small">Sin usuarios</div>'}
-async function crearUsuario(){const u=$('#uUsername')?.value.trim(),p=$('#uPassword')?.value.trim(),n=$('#uNombre')?.value.trim();if(!u||!p||!n)return showNotif('Complete campos','error');if(STATE.data.usuarios.find(us=>us.username===u))return showNotif('Usuario ya existe','error');STATE.data.usuarios.push({id:Date.now(),username:u,password:p,nombre:n,placa:$('#uPlaca')?.value,rol:$('#uRol').value,onDuty:false,fechaCreacion:new Date().toISOString()});await saveData('usuarios',STATE.data.usuarios);$('#uUsername').value=$('#uPassword').value=$('#uNombre').value=$('#uPlaca').value='';loadUsuarios()}
-async function eliminarUsuario(id){if(!confirm('¿Eliminar usuario?'))return;STATE.data.usuarios=STATE.data.usuarios.filter(u=>u.id!==id);await saveData('usuarios',STATE.data.usuarios);loadUsuarios()}
+
+// NOTA: Reemplaza estas funciones con tu propio sistema de almacenamiento
+async function loadData(k){
+  try{
+    // Para Claude.ai artifacts:
+    const r=await window.storage.get(k,true);
+    return r?JSON.parse(r.value):[];
+    
+    // Para tu index.html usa localStorage:
+    // const data = localStorage.getItem(k);
+    // return data ? JSON.parse(data) : [];
+  }catch(e){
+    return[]
+  }
+}
+
+async function saveData(k,d){
+  try{
+    // Para Claude.ai artifacts:
+    await window.storage.set(k,JSON.stringify(d),true);
+    
+    // Para tu index.html usa localStorage:
+    // localStorage.setItem(k, JSON.stringify(d));
+    
+    showNotif('✓ Datos guardados','success');
+    await loadAllData();
+    registrarAuditoria(`Datos actualizados en ${k}`);
+  }catch(e){
+    showNotif('✗ Error al guardar','error')
+  }
+}
+
+async function registrarAuditoria(accion){
+  STATE.data.auditoria.unshift({
+    id:Date.now(),
+    accion:accion,
+    usuario:STATE.currentUser?.nombre||'Sistema',
+    fecha:new Date().toISOString()
+  });
+  if(STATE.data.auditoria.length>100)STATE.data.auditoria=STATE.data.auditoria.slice(0,100);
+  try{
+    await window.storage.set('auditoria',JSON.stringify(STATE.data.auditoria),true);
+    // Para localStorage: localStorage.setItem('auditoria', JSON.stringify(STATE.data.auditoria));
+  }catch(e){}
+}
+
+async function loadAllData(){
+  STATE.data.usuarios=await loadData('usuarios');
+  STATE.data.ciudadanos=await loadData('ciudadanos');
+  STATE.data.multas=await loadData('multas');
+  STATE.data.arrestos=await loadData('arrestos');
+  STATE.data.vehiculos=await loadData('vehiculos');
+  STATE.data.denuncias=await loadData('denuncias');
+  STATE.data.investigaciones=await loadData('investigaciones');
+  STATE.data.llamadas=await loadData('llamadas');
+  STATE.data.bolo=await loadData('bolo');
+  STATE.data.alertas=await loadData('alertas');
+  STATE.data.auditoria=await loadData('auditoria');
+  updateCardBadges()
+}
+
+function showNotif(m,t='info'){
+  const n=document.createElement('div');
+  n.style.cssText=`position:fixed;top:80px;right:20px;z-index:10000;padding:14px 24px;border-radius:10px;background:${t==='success'?'linear-gradient(90deg,#10b981,#059669)':'linear-gradient(90deg,#ef4444,#dc2626)'};color:white;font-weight:700;box-shadow:0 10px 40px rgba(0,0,0,0.6)`;
+  n.textContent=m;
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),3000)
+}
+
+function updateCardBadges(){
+  const b={ciudadanos:STATE.data.ciudadanos.length,multas:STATE.data.multas.length,arrestos:STATE.data.arrestos.length,vehiculos:STATE.data.vehiculos.length,denuncias:STATE.data.denuncias.length,investigaciones:STATE.data.investigaciones.length,llamadas:STATE.data.llamadas.length,bolo:STATE.data.bolo.length,alertas:STATE.data.alertas.length,auditoria:STATE.data.auditoria.length};
+  Object.keys(b).forEach(id=>{
+    const c=document.querySelector(`[data-card="${id}"]`);
+    if(c&&b[id]>0){
+      let badge=c.querySelector('.badge');
+      if(!badge){
+        badge=document.createElement('div');
+        badge.className='badge';
+        c.appendChild(badge)
+      }
+      badge.textContent=b[id]
+    }
+  })
+}
+
+async function initAdmin(){
+  const u=await loadData('usuarios');
+  if(u.length===0){
+    await saveData('usuarios',[{id:1,username:'admin',password:'admin123',nombre:'Administrador del Sistema',rol:'admin',placa:'ADMIN-001',onDuty:false,fechaCreacion:new Date().toISOString()}]);
+    registrarAuditoria('Sistema inicializado con usuario admin');
+  }
+}
+
+const CARDS=[
+  {id:'ciudadanos',title:'PDA / Fichas',desc:'Base de datos ciudadanos',icon:'🚓'},
+  {id:'llamadas',title:'Llamadas',desc:'Dispatch / Gestión',icon:'📞'},
+  {id:'buscar',title:'Búsqueda',desc:'Consultar registros',icon:'🔍'},
+  {id:'multas',title:'Multas',desc:'Infracciones',icon:'📋'},
+  {id:'arrestos',title:'Arrestos',desc:'Detenciones',icon:'⛓️'},
+  {id:'vehiculos',title:'Vehículos',desc:'Registro vehicular',icon:'🚗'},
+  {id:'bolo',title:'BOLO / Wanted',desc:'Personas buscadas',icon:'🚨'},
+  {id:'denuncias',title:'Denuncias',desc:'Reportes ciudadanos',icon:'📝'},
+  {id:'investigaciones',title:'Investigaciones',desc:'Casos activos',icon:'🔬'},
+  {id:'alertas',title:'Alertas',desc:'Alertas activas',icon:'⚠️'},
+  {id:'codigos',title:'Códigos',desc:'Señales policiales',icon:'📡'},
+  {id:'auditoria',title:'Auditoría',desc:'Registro de acciones',icon:'📜',adminOnly:true},
+  {id:'admin',title:'Administración',desc:'Gestión de usuarios',icon:'⚙️',adminOnly:true}
+];
+
+function renderCards(){
+  const g=$('#cardsGrid');
+  g.innerHTML='';
+  CARDS.forEach(c=>{
+    if(c.adminOnly&&(!STATE.currentUser||STATE.currentUser.rol!=='admin'))return;
+    const e=document.createElement('div');
+    e.className='card';
+    e.setAttribute('data-card',c.id);
+    e.innerHTML=`<div class="icon">${c.icon}</div><div class="title">${c.title}</div><div class="desc">${c.desc}</div>`;
+    e.onclick=()=>openPanel(c.id);
+    g.appendChild(e)
+  });
+  updateCardBadges()
+}
+
+function openPanel(id){
+  const a=$('#expandedArea');
+  a.innerHTML='';
+  const p=document.createElement('div');
+  p.className='expanded';
+  a.appendChild(p);
+  switch(id){
+    case'llamadas':renderLlamadas(p);break;
+    case'ciudadanos':renderCiudadanos(p);break;
+    case'buscar':renderBuscar(p);break;
+    case'multas':renderMultas(p);break;
+    case'arrestos':renderArrestos(p);break;
+    case'vehiculos':renderVehiculos(p);break;
+    case'bolo':renderBOLO(p);break;
+    case'denuncias':renderDenuncias(p);break;
+    case'investigaciones':renderInvestigaciones(p);break;
+    case'alertas':renderAlertas(p);break;
+    case'codigos':renderCodigos(p);break;
+    case'auditoria':renderAuditoria(p);break;
+    case'admin':renderAdmin(p);break
+  }
+  p.scrollIntoView({behavior:'smooth'})
+}
+
+function renderLlamadas(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📞 Llamadas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listLlamadas" class="list"></div></div><div><strong>Nueva Llamada</strong><div class="flex flex-col gap-2 mt-3"><input id="llRemitente" placeholder="Remitente (opcional)"><textarea id="llMensaje" placeholder="Mensaje..."></textarea><button class="btn" onclick="crearLlamada()">Crear</button></div></div></div>`;
+  loadLlamadas()
+}
+
+function loadLlamadas(){
+  const l=$('#listLlamadas');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.llamadas.length?STATE.data.llamadas.map(ll=>`<div class="item"><div style="flex:1"><strong>${html(ll.remitente||'Anónimo')}</strong><div class="muted small mt-2">${html(ll.mensaje)}</div><div class="muted tiny">${new Date(ll.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarLlamada(${ll.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin llamadas</div>'
+}
+
+async function crearLlamada(){
+  const m=$('#llMensaje')?.value.trim();
+  if(!m)return showNotif('Escriba mensaje','error');
+  STATE.data.llamadas.push({id:Date.now(),remitente:$('#llRemitente')?.value||'Anónimo',mensaje:m,fecha:new Date().toISOString()});
+  await saveData('llamadas',STATE.data.llamadas);
+  registrarAuditoria('Llamada creada');
+  $('#llRemitente').value='';
+  $('#llMensaje').value='';
+  loadLlamadas()
+}
+
+async function eliminarLlamada(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.llamadas=STATE.data.llamadas.filter(ll=>ll.id!==id);
+  await saveData('llamadas',STATE.data.llamadas);
+  registrarAuditoria('Llamada eliminada');
+  loadLlamadas()
+}
+
+function renderCiudadanos(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🚓 PDA / Fichas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchCiu" placeholder="Buscar..." style="margin-bottom:12px"><div id="listCiu" class="list"></div></div><div><strong>Nueva Ficha</strong><div class="flex flex-col gap-2 mt-3"><input id="cNombre" placeholder="Nombre *"><input id="cDNI" placeholder="DNI *"><input id="cFecha" type="date"><input id="cDir" placeholder="Dirección"><input id="cTel" placeholder="Teléfono"><button class="btn" onclick="crearCiu()">Registrar</button></div></div></div>`;
+  loadCiu();
+  $('#searchCiu').oninput=loadCiu
+}
+
+function loadCiu(){
+  const l=$('#listCiu');
+  if(!l)return;
+  const q=($('#searchCiu')?.value||'').toLowerCase();
+  const items=STATE.data.ciudadanos.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.dni||'').toLowerCase().includes(q));
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=items.length?items.map(c=>`<div class="item"><div style="flex:1"><strong>${html(c.nombre)}</strong><div class="muted small">DNI: ${html(c.dni)}${c.telefono?' • '+html(c.telefono):''}</div>${c.direccion?`<div class="muted tiny">${html(c.direccion)}</div>`:''}</div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarCiu(${c.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin fichas</div>'
+}
+
+async function crearCiu(){
+  const n=$('#cNombre')?.value.trim(),d=$('#cDNI')?.value.trim();
+  if(!n||!d)return showNotif('Complete campos','error');
+  STATE.data.ciudadanos.push({id:Date.now(),nombre:n,dni:d,fechaNacimiento:$('#cFecha')?.value,direccion:$('#cDir')?.value,telefono:$('#cTel')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fechaRegistro:new Date().toISOString()});
+  await saveData('ciudadanos',STATE.data.ciudadanos);
+  registrarAuditoria(`Ficha creada: ${n}`);
+  $('#cNombre').value=$('#cDNI').value=$('#cFecha').value=$('#cDir').value=$('#cTel').value='';
+  loadCiu()
+}
+
+async function eliminarCiu(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.ciudadanos=STATE.data.ciudadanos.filter(c=>c.id!==id);
+  await saveData('ciudadanos',STATE.data.ciudadanos);
+  registrarAuditoria('Ficha eliminada');
+  loadCiu()
+}
+
+function renderBuscar(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🔍 Búsqueda Global</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><input id="globalSearch" placeholder="Buscar..." style="font-size:16px;padding:14px;margin-bottom:16px"><div id="searchResults"></div>`;
+  $('#globalSearch').oninput=()=>{
+    const q=$('#globalSearch').value.toLowerCase(),r=$('#searchResults');
+    if(q.length<2){r.innerHTML='<div class="muted small">Escriba al menos 2 caracteres</div>';return}
+    const c=STATE.data.ciudadanos.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q)),
+    m=STATE.data.multas.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q)),
+    a=STATE.data.arrestos.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q)),
+    v=STATE.data.vehiculos.filter(x=>(x.matricula||'').toLowerCase().includes(q)||(x.propietarioNombre||'').toLowerCase().includes(q));
+    let h='';
+    if(c.length)h+=`<h4>🚓 Fichas (${c.length})</h4><div class="list">${c.slice(0,5).map(x=>`<div class="item"><strong>${x.nombre}</strong><div class="muted small">DNI: ${x.dni}</div></div>`).join('')}</div>`;
+    if(m.length)h+=`<h4 style="margin-top:16px">📋 Multas (${m.length})</h4><div class="list">${m.slice(0,5).map(x=>`<div class="item"><strong>${x.nombre}</strong><div class="muted small">${x.tipo} - $${x.importe}</div></div>`).join('')}</div>`;
+    if(a.length)h+=`<h4 style="margin-top:16px">⛓️ Arrestos (${a.length})</h4><div class="list">${a.slice(0,5).map(x=>`<div class="item"><strong>${x.nombre}</strong><div class="muted small">${x.cargo}</div></div>`).join('')}</div>`;
+    if(v.length)h+=`<h4 style="margin-top:16px">🚗 Vehículos (${v.length})</h4><div class="list">${v.slice(0,5).map(x=>`<div class="item"><strong>${x.matricula}</strong><div class="muted small">${x.marca} ${x.modelo}</div></div>`).join('')}</div>`;
+    r.innerHTML=h||'<div class="muted small">Sin resultados</div>'
+  }
+}
+
+function renderMultas(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📋 Multas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listMultas" class="list"></div></div><div><strong>Nueva Multa</strong><div class="flex flex-col gap-2 mt-3"><input id="mDNI" placeholder="DNI *"><input id="mNombre" placeholder="Nombre *"><select id="mTipo"><option>Exceso de velocidad</option><option>Estacionamiento indebido</option><option>Conducción temeraria</option><option>Conducir bajo efectos</option><option>Documentación irregular</option></select><input id="mImporte" type="number" placeholder="Importe *"><textarea id="mDesc" placeholder="Descripción..."></textarea><button class="btn" onclick="crearMulta()">Registrar</button></div></div></div>`;
+  loadMultas()
+}
+
+function loadMultas(){
+  const l=$('#listMultas');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.multas.length?STATE.data.multas.map(m=>`<div class="item"><div style="flex:1"><strong>${html(m.nombre)}</strong><div class="muted small">${html(m.tipo)} - ${m.importe}</div><div class="muted tiny">${new Date(m.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarMulta(${m.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin multas</div>'
+}
+
+async function crearMulta(){
+  const d=$('#mDNI')?.value.trim(),n=$('#mNombre')?.value.trim(),t=$('#mTipo').value,i=$('#mImporte')?.value;
+  if(!d||!n||!t||!i)return showNotif('Complete campos','error');
+  STATE.data.multas.push({id:Date.now(),dni:d,nombre:n,tipo:t,importe:i,descripcion:$('#mDesc')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});
+  await saveData('multas',STATE.data.multas);
+  registrarAuditoria(`Multa registrada: ${n} - ${i}`);
+  $('#mDNI').value=$('#mNombre').value=$('#mImporte').value=$('#mDesc').value='';
+  loadMultas()
+}
+
+async function eliminarMulta(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.multas=STATE.data.multas.filter(m=>m.id!==id);
+  await saveData('multas',STATE.data.multas);
+  registrarAuditoria('Multa eliminada');
+  loadMultas()
+}
+
+function renderArrestos(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">⛓️ Arrestos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listArrestos" class="list"></div></div><div><strong>Nuevo Arresto</strong><div class="flex flex-col gap-2 mt-3"><input id="aDNI" placeholder="DNI *"><input id="aNombre" placeholder="Nombre *"><select id="aCargo"><option>Robo</option><option>Asalto</option><option>Homicidio</option><option>Narcotráfico</option><option>Secuestro</option><option>Fraude</option></select><input id="aTiempo" type="number" placeholder="Meses"><textarea id="aDetalles" placeholder="Detalles..."></textarea><button class="btn" onclick="crearArresto()">Registrar</button></div></div></div>`;
+  loadArrestos()
+}
+
+function loadArrestos(){
+  const l=$('#listArrestos');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.arrestos.length?STATE.data.arrestos.map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.nombre)}</strong><div class="muted small">${html(a.cargo)}${a.tiempo?' - '+a.tiempo+' meses':''}</div><div class="muted tiny">${new Date(a.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarArresto(${a.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin arrestos</div>'
+}
+
+async function crearArresto(){
+  const d=$('#aDNI')?.value.trim(),n=$('#aNombre')?.value.trim(),c=$('#aCargo').value;
+  if(!d||!n||!c)return showNotif('Complete campos','error');
+  STATE.data.arrestos.push({id:Date.now(),dni:d,nombre:n,cargo:c,tiempo:$('#aTiempo')?.value,detalles:$('#aDetalles')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});
+  await saveData('arrestos',STATE.data.arrestos);
+  registrarAuditoria(`Arresto registrado: ${n} - ${c}`);
+  $('#aDNI').value=$('#aNombre').value=$('#aTiempo').value=$('#aDetalles').value='';
+  loadArrestos()
+}
+
+async function eliminarArresto(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.arrestos=STATE.data.arrestos.filter(a=>a.id!==id);
+  await saveData('arrestos',STATE.data.arrestos);
+  registrarAuditoria('Arresto eliminado');
+  loadArrestos()
+}
+
+function renderVehiculos(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🚗 Vehículos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listVehiculos" class="list"></div></div><div><strong>Nuevo Vehículo</strong><div class="flex flex-col gap-2 mt-3"><input id="vMatricula" placeholder="Matrícula *"><input id="vMarca" placeholder="Marca *"><input id="vModelo" placeholder="Modelo"><input id="vColor" placeholder="Color"><input id="vPropDNI" placeholder="DNI Propietario"><input id="vPropNombre" placeholder="Nombre Propietario"><button class="btn" onclick="crearVehiculo()">Registrar</button></div></div></div>`;
+  loadVehiculos()
+}
+
+function loadVehiculos(){
+  const l=$('#listVehiculos');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.vehiculos.length?STATE.data.vehiculos.map(v=>`<div class="item"><div style="flex:1"><strong>${html(v.matricula)}</strong><div class="muted small">${html(v.marca)} ${html(v.modelo)} - ${html(v.color)}</div>${v.propietarioNombre?`<div class="muted tiny">Prop: ${html(v.propietarioNombre)}</div>`:''}</div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarVehiculo(${v.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin vehículos</div>'
+}
+
+async function crearVehiculo(){
+  const m=$('#vMatricula')?.value.trim(),ma=$('#vMarca')?.value.trim();
+  if(!m||!ma)return showNotif('Complete campos','error');
+  STATE.data.vehiculos.push({id:Date.now(),matricula:m,marca:ma,modelo:$('#vModelo')?.value,color:$('#vColor')?.value,propietarioDNI:$('#vPropDNI')?.value,propietarioNombre:$('#vPropNombre')?.value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fechaRegistro:new Date().toISOString()});
+  await saveData('vehiculos',STATE.data.vehiculos);
+  registrarAuditoria(`Vehículo registrado: ${m}`);
+  $('#vMatricula').value=$('#vMarca').value=$('#vModelo').value=$('#vColor').value=$('#vPropDNI').value=$('#vPropNombre').value='';
+  loadVehiculos()
+}
+
+async function eliminarVehiculo(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.vehiculos=STATE.data.vehiculos.filter(v=>v.id!==id);
+  await saveData('vehiculos',STATE.data.vehiculos);
+  registrarAuditoria('Vehículo eliminado');
+  loadVehiculos()
+}
+
+function renderBOLO(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🚨 BOLO / Wanted</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listBOLO" class="list"></div></div><div><strong>Nuevo BOLO</strong><div class="flex flex-col gap-2 mt-3"><input id="bNombre" placeholder="Nombre *"><input id="bDNI" placeholder="DNI"><textarea id="bMotivo" placeholder="Motivo *"></textarea><select id="bNivel"><option>Nivel Bajo</option><option>Nivel Medio</option><option>Nivel Alto</option><option>Nivel Crítico</option></select><button class="btn" onclick="crearBOLO()">Registrar</button></div></div></div>`;
+  loadBOLO()
+}
+
+function loadBOLO(){
+  const l=$('#listBOLO');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.bolo.length?STATE.data.bolo.map(b=>`<div class="item"><div style="flex:1"><strong>${html(b.nombre)}</strong><div class="muted small">${html(b.motivo)}</div><div class="muted tiny">${html(b.nivel)} • ${new Date(b.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarBOLO(${b.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin BOLOs</div>'
+}
+
+async function crearBOLO(){
+  const n=$('#bNombre')?.value.trim(),m=$('#bMotivo')?.value.trim();
+  if(!n||!m)return showNotif('Complete campos','error');
+  STATE.data.bolo.push({id:Date.now(),nombre:n,dni:$('#bDNI')?.value,motivo:m,nivel:$('#bNivel').value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});
+  await saveData('bolo',STATE.data.bolo);
+  registrarAuditoria(`BOLO creado: ${n}`);
+  $('#bNombre').value=$('#bDNI').value=$('#bMotivo').value='';
+  loadBOLO()
+}
+
+async function eliminarBOLO(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.bolo=STATE.data.bolo.filter(b=>b.id!==id);
+  await saveData('bolo',STATE.data.bolo);
+  registrarAuditoria('BOLO eliminado');
+  loadBOLO()
+}
+
+function renderDenuncias(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📝 Denuncias</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listDenuncias" class="list"></div></div><div><strong>Nueva Denuncia</strong><div class="flex flex-col gap-2 mt-3"><input id="dRemitente" placeholder="Remitente"><input id="dTitulo" placeholder="Título *"><textarea id="dDescripcion" placeholder="Descripción *"></textarea><input id="dUbicacion" placeholder="Ubicación"><button class="btn" onclick="crearDenuncia()">Registrar</button></div></div></div>`;
+  loadDenuncias()
+}
+
+function loadDenuncias(){
+  const l=$('#listDenuncias');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.denuncias.length?STATE.data.denuncias.map(d=>`<div class="item"><div style="flex:1"><strong>${html(d.titulo)}</strong><div class="muted small">${html((d.descripcion||'').slice(0,100))}</div><div class="muted tiny">${html(d.remitente||'Anónimo')} • ${new Date(d.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarDenuncia(${d.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin denuncias</div>'
+}
+
+async function crearDenuncia(){
+  const t=$('#dTitulo')?.value.trim(),de=$('#dDescripcion')?.value.trim();
+  if(!t||!de)return showNotif('Complete campos','error');
+  STATE.data.denuncias.push({id:Date.now(),titulo:t,descripcion:de,remitente:$('#dRemitente')?.value||'Anónimo',ubicacion:$('#dUbicacion')?.value,estado:'Abierta',oficialRegistro:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});
+  await saveData('denuncias',STATE.data.denuncias);
+  registrarAuditoria(`Denuncia creada: ${t}`);
+  $('#dRemitente').value=$('#dTitulo').value=$('#dDescripcion').value=$('#dUbicacion').value='';
+  loadDenuncias()
+}
+
+async function eliminarDenuncia(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.denuncias=STATE.data.denuncias.filter(d=>d.id!==id);
+  await saveData('denuncias',STATE.data.denuncias);
+  registrarAuditoria('Denuncia eliminada');
+  loadDenuncias()
+}
+
+function renderInvestigaciones(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">🔬 Investigaciones</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listInv" class="list"></div></div><div><strong>Nueva Investigación</strong><div class="flex flex-col gap-2 mt-3"><input id="iTitulo" placeholder="Título *"><textarea id="iDescripcion" placeholder="Descripción *"></textarea><select id="iEstado"><option>En Progreso</option><option>Suspendida</option><option>Cerrada</option></select><button class="btn" onclick="crearInv()">Registrar</button></div></div></div>`;
+  loadInv()
+}
+
+function loadInv(){
+  const l=$('#listInv');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.investigaciones.length?STATE.data.investigaciones.map(i=>`<div class="item"><div style="flex:1"><strong>${html(i.titulo)}</strong><div class="muted small">${html((i.descripcion||'').slice(0,100))}</div><div class="muted tiny">${html(i.estado)} • ${new Date(i.fechaInicio).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarInv(${i.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin investigaciones</div>'
+}
+
+async function crearInv(){
+  const t=$('#iTitulo')?.value.trim(),de=$('#iDescripcion')?.value.trim();
+  if(!t||!de)return showNotif('Complete campos','error');
+  STATE.data.investigaciones.push({id:Date.now(),titulo:t,descripcion:de,estado:$('#iEstado').value,oficialRegistro:STATE.currentUser?.nombre||'Sistema',fechaInicio:new Date().toISOString()});
+  await saveData('investigaciones',STATE.data.investigaciones);
+  registrarAuditoria(`Investigación creada: ${t}`);
+  $('#iTitulo').value=$('#iDescripcion').value='';
+  loadInv()
+}
+
+async function eliminarInv(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.investigaciones=STATE.data.investigaciones.filter(i=>i.id!==id);
+  await saveData('investigaciones',STATE.data.investigaciones);
+  registrarAuditoria('Investigación eliminada');
+  loadInv()
+}
+
+function renderAlertas(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">⚠️ Alertas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listAlertas" class="list"></div></div><div><strong>Nueva Alerta</strong><div class="flex flex-col gap-2 mt-3"><input id="alTitulo" placeholder="Título *"><textarea id="alMensaje" placeholder="Mensaje *"></textarea><select id="alNivel"><option value="verde">Verde</option><option value="amarilla">Amarilla</option><option value="roja">Roja</option></select><button class="btn" onclick="crearAlerta()">Crear</button></div></div></div>`;
+  loadAlertas()
+}
+
+function loadAlertas(){
+  const l=$('#listAlertas');
+  if(!l)return;
+  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
+  l.innerHTML=STATE.data.alertas.length?STATE.data.alertas.map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.titulo)}</strong><div class="muted small">${html(a.mensaje)}</div><div class="muted tiny">${html(a.nivel)} • ${new Date(a.fecha).toLocaleDateString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="eliminarAlerta(${a.id})">X</button>`:''}</div>`).join(''):'<div class="muted small">Sin alertas</div>'
+}
+
+async function crearAlerta(){
+  const t=$('#alTitulo')?.value.trim(),m=$('#alMensaje')?.value.trim();
+  if(!t||!m)return showNotif('Complete campos','error');
+  STATE.data.alertas.push({id:Date.now(),titulo:t,mensaje:m,nivel:$('#alNivel').value,autor:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()});
+  await saveData('alertas',STATE.data.alertas);
+  registrarAuditoria(`Alerta creada: ${t}`);
+  $('#alTitulo').value=$('#alMensaje').value='';
+  loadAlertas()
+}
+
+async function eliminarAlerta(id){
+  if(!confirm('¿Eliminar?'))return;
+  STATE.data.alertas=STATE.data.alertas.filter(a=>a.id!==id);
+  await saveData('alertas',STATE.data.alertas);
+  registrarAuditoria('Alerta eliminada');
+  loadAlertas()
+}
+
+function renderCodigos(p){
+  const codigos=[{code:'10-4',desc:'Mensaje recibido'},{code:'10-6',desc:'Ocupado'},{code:'10-8',desc:'En servicio'},{code:'10-15',desc:'Detenido'},{code:'10-20',desc:'Ubicación'},{code:'10-23',desc:'En posición'},{code:'10-31',desc:'Crimen en progreso'},{code:'10-32',desc:'Persona armada'},{code:'10-99',desc:'Oficial caído'},{code:'Código 0',desc:'Oficial en peligro'},{code:'Código 1',desc:'Situación bajo control'},{code:'Código 2',desc:'Respuesta urgente'},{code:'Código 3',desc:'Respuesta de emergencia'},{code:'Código 4',desc:'No se requiere asistencia'}];
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📡 Códigos Policiales</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${codigos.map(c=>`<div class="item" style="text-align:center;padding:20px;cursor:pointer" onclick="showNotif('${c.code}: ${c.desc}','info')"><div style="font-size:24px;font-weight:900;color:var(--accent);margin-bottom:8px">${c.code}</div><div class="muted small">${c.desc}</div></div>`).join('')}</div>`
+}
+
+function renderAuditoria(p){
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">📜 Registro de Auditoría</strong><div class="muted small">Últimas 100 acciones del sistema</div></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div id="listAuditoria" class="list"></div>`;
+  loadAuditoria()
+}
+
+function loadAuditoria(){
+  const l=$('#listAuditoria');
+  if(!l)return;
+  l.innerHTML=STATE.data.auditoria.length?STATE.data.auditoria.map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.accion)}</strong><div class="muted small">Por: ${html(a.usuario)}</div><div class="muted tiny">${new Date(a.fecha).toLocaleString()}</div></div></div>`).join(''):'<div class="muted small">Sin registros de auditoría</div>'
+}
+
+function renderAdmin(p){
+  if(!STATE.currentUser||STATE.currentUser.rol!=='admin'){p.innerHTML='<div class="item"><strong>Acceso Denegado</strong><div class="muted small">Solo administradores</div></div>';return}
+  p.innerHTML=`<div class="flex justify-between items-center" style="margin-bottom:20px"><div><strong style="font-size:20px">⚙️ Administración</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><strong>Usuarios del Sistema</strong><div id="listUsuarios" class="list" style="margin-top:12px"></div></div><div><strong>Crear Usuario</strong><div class="flex flex-col gap-2 mt-3"><input id="uUsername" placeholder="Usuario *"><input id="uPassword" type="password" placeholder="Contraseña *"><input id="uNombre" placeholder="Nombre *"><input id="uPlaca" placeholder="Placa"><select id="uRol"><option value="oficial">Oficial</option><option value="sargento">Sargento</option><option value="admin">Administrador</option></select><button class="btn" onclick="crearUsuario()">Crear</button></div></div></div>`;
+  loadUsuarios()
+}
+
+function loadUsuarios(){
+  const l=$('#listUsuarios');
+  if(!l)return;
+  l.innerHTML=STATE.data.usuarios.length?STATE.data.usuarios.map(u=>`<div class="item"><div style="flex:1"><strong>${html(u.nombre)}</strong><div class="muted small">Usuario: ${html(u.username)} • Rol: ${html(u.rol)}${u.placa?' • Placa: '+html(u.placa):''}</div></div><button class="btn-danger btn-ghost" onclick="eliminarUsuario(${u.id})" ${u.username==='admin'?'disabled':''}>${u.username==='admin'?'Protegido':'Eliminar'}</button></div>`).join(''):'<div class="muted small">Sin usuarios</div>'
+}
+
+async function crearUsuario(){
+  const u=$('#uUsername')?.value.trim(),p=$('#uPassword')?.value.trim(),n=$('#uNombre')?.value.trim();
+  if(!u||!p||!n)return showNotif('Complete campos','error');
+  if(STATE.data.usuarios.find(us=>us.username===u))return showNotif('Usuario ya existe','error');
+  STATE.data.usuarios.push({id:Date.now(),username:u,password:p,nombre:n,placa:$('#uPlaca')?.value,rol:$('#uRol').value,onDuty:false,fechaCreacion:new Date().toISOString()});
+  await saveData('usuarios',STATE.data.usuarios);
+  registrarAuditoria(`Usuario creado: ${u}`);
+  $('#uUsername').value=$('#uPassword').value=$('#uNombre').value=$('#uPlaca').value='';
+  loadUsuarios()
+}
+
+async function eliminarUsuario(id){
+  if(!confirm('¿Eliminar usuario?'))return;
+  const user=STATE.data.usuarios.find(u=>u.id===id);
+  STATE.data.usuarios=STATE.data.usuarios.filter(u=>u.id!==id);
+  await saveData('usuarios',STATE.data.usuarios);
+  registrarAuditoria(`Usuario eliminado: ${user?.username}`);
+  loadUsuarios()
+}
+
 function closePanel(){$('#expandedArea').innerHTML='';updateCardBadges()}
-function updateUI(){$('#userDisplay').textContent=STATE.currentUser?`${STATE.currentUser.nombre} (${STATE.currentUser.rol})`:'No conectado';$('#btnLogin').style.display=STATE.currentUser?'none':'inline-block';$('#btnLogout').style.display=STATE.currentUser?'inline-block':'none';$('#adminIndicator').style.display=STATE.currentUser&&STATE.currentUser.rol==='admin'?'inline-block':'none';renderCards()}
+
+function updateUI(){
+  $('#userDisplay').textContent=STATE.currentUser?`${STATE.currentUser.nombre} (${STATE.currentUser.rol})`:'No conectado';
+  $('#btnLogin').style.display=STATE.currentUser?'none':'inline-block';
+  $('#btnLogout').style.display=STATE.currentUser?'inline-block':'none';
+  $('#adminIndicator').style.display=STATE.currentUser&&STATE.currentUser.rol==='admin'?'inline-block':'none';
+  renderCards()
+}
+
 $('#btnLogin').onclick=()=>$('#loginModal').classList.add('show');
 $('#btnCancelLogin').onclick=()=>$('#loginModal').classList.remove('show');
-$('#btnLogout').onclick=()=>{STATE.currentUser=null;updateUI();$('#expandedArea').innerHTML='';showNotif('Sesión cerrada','info')};
-$('#btnDoLogin').onclick=async()=>{const u=$('#loginUser').value.trim(),p=$('#loginPass').value.trim();if(!u||!p){$('#loginError').textContent='Complete todos los campos';$('#loginError').style.display='block';return}const user=STATE.data.usuarios.find(us=>us.username===u&&us.password===p);if(!user){$('#loginError').textContent='Usuario o contraseña incorrectos';$('#loginError').style.display='block';return}STATE.currentUser=user;updateUI();$('#loginModal').classList.remove('show');$('#loginUser').value=$('#loginPass').value='';$('#loginError').style.display='none';showNotif(`Bienvenido ${user.nombre}`,'success')};
+$('#btnLogout').onclick=()=>{STATE.currentUser=null;updateUI();$('#expandedArea').innerHTML='';showNotif('Sesión cerrada','info');registrarAuditoria('Sesión cerrada')};
+$('#btnDoLogin').onclick=async()=>{
+  const u=$('#loginUser').value.trim(),p=$('#loginPass').value.trim();
+  if(!u||!p){$('#loginError').textContent='Complete todos los campos';$('#loginError').style.display='block';return}
+  const user=STATE.data.usuarios.find(us=>us.username===u&&us.password===p);
+  if(!user){$('#loginError').textContent='Usuario o contraseña incorrectos';$('#loginError').style.display='block';return}
+  STATE.currentUser=user;
+  updateUI();
+  $('#loginModal').classList.remove('show');
+  $('#loginUser').value=$('#loginPass').value='';
+  $('#loginError').style.display='none';
+  showNotif(`Bienvenido ${user.nombre}`,'success');
+  registrarAuditoria(`Inicio de sesión: ${user.username}`)
+};
+
 (async()=>{await initAdmin();await loadAllData();updateUI()})();
 </script>
 </body>
