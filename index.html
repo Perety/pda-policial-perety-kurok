@@ -133,7 +133,7 @@ async function loadData(k){
 async function saveData(k,d){
   try{
     // Para Claude.ai artifacts:
-    await window.storage.set(k,JSON.stringify(d),true);
+    localStorage.setItem(k, JSON.stringify(d));
     
     // Para tu index.html usa localStorage:
     // localStorage.setItem(k, JSON.stringify(d));
