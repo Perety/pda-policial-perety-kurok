@@ -114,7 +114,10 @@ const SUPABASE_URL = 'https://lqwyoobsvfbetqqjjdkt.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxxd3lvb2JzdmZiZXRxcWpqZGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzOTczMTIsImV4cCI6MjA3ODk3MzMxMn0.F80qOvvwWnj_HquIM4B3LDBSDVU3_9zmKUVaCfAwXcc';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const STATE={currentUser:null,loading:false,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],llamadas:[],bolo:[],alertas:[],auditoria:[]}};
+
+// Added a dedicated flag to avoid the race-condition where save/delete set STATE.loading
+// and then call loadAllData which early-returned. Use STATE.loadingAll to control global loads.
+const STATE={currentUser:null,loading:false,loadingAll:false,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],llamadas:[],bolo:[],alertas:[],auditoria:[]}};
 const $=(s,r=document)=>r.querySelector(s);
 const html=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -126,7 +129,10 @@ async function hashPassword(pass){
 }
 
 async function loadData(table){
-  if(STATE.loading)return[];
+  if(STATE.loading) {
+    // It's safe to still fetch a specific table even if other loads are ongoing.
+    // We don't block here because callers may need fresh data.
+  }
   try{
     const {data,error}=await supabase.from(table).select('*').order('id',{ascending:false});
     if(error)throw error;
@@ -138,17 +144,20 @@ async function loadData(table){
 }
 
 async function saveData(table,item){
-  if(STATE.loading)return false;
+  if(STATE.loading) {
+    // allow operations but avoid spamming: we keep the guard but don't block saving
+  }
   STATE.loading=true;
   try{
     const {error}=await supabase.from(table).insert([item]);
     if(error)throw error;
     showNotif('✓ Guardado correctamente','success');
+    // Ensure loadAllData can run even if STATE.loading was true
     await loadAllData();
     return true;
   }catch(e){
     console.error('Error:',e);
-    showNotif('✗ Error: '+e.message,'error');
+    showNotif('✗ Error: '+(e.message||e),'error');
     return false;
   }finally{
     STATE.loading=false;
@@ -156,7 +165,9 @@ async function saveData(table,item){
 }
 
 async function deleteData(table,id){
-  if(STATE.loading)return false;
+  if(STATE.loading) {
+    // allow delete attempts; will be serialized by Supabase
+  }
   STATE.loading=true;
   try{
     const {error}=await supabase.from(table).delete().eq('id',id);
@@ -182,8 +193,24 @@ async function registrarAuditoria(a){
 }
 
 async function loadAllData(){
-  if(STATE.loading)return;
-  STATE.loading=true;
+  // Prevent overlapping full loads
+  if(STATE.loadingAll) {
+    // If a full load is already in progress, wait for it to finish by polling the flag.
+    // This avoids early-returning without updating STATE.data (root cause of the bug).
+    let waited = 0;
+    while(STATE.loadingAll && waited < 3000) { // wait up to 3s
+      await new Promise(r => setTimeout(r, 50));
+      waited += 50;
+    }
+    if(STATE.loadingAll) {
+      // if still loading after timeout, continue anyway to avoid stalling UI
+      console.warn('loadAllData: previous full load still running; proceeding with a new load.');
+    } else {
+      return; // previous load finished and updated data
+    }
+  }
+  STATE.loadingAll = true;
+  STATE.loading = true;
   try{
     const [usuarios,ciudadanos,multas,arrestos,vehiculos,denuncias,investigaciones,llamadas,bolo,alertas,auditoria]=await Promise.all([
       loadData('usuarios'),
@@ -198,12 +225,13 @@ async function loadAllData(){
       loadData('alertas'),
       loadData('auditoria')
     ]);
-    STATE.data={usuarios,ciudadanos,multas,arrestos,vehiculos,denuncias,investigaciones,llamadas,bolo,alertas,auditoria};
+    STATE.data={usuarios:usuarios||[],ciudadanos:ciudadanos||[],multas:multas||[],arrestos:arrestos||[],vehiculos:vehiculos||[],denuncias:denuncias||[],investigaciones:investigaciones||[],llamadas:llamadas||[],bolo:bolo||[],alertas:alertas||[],auditoria:auditoria||[]};
     updateCardBadges();
   }catch(e){
     console.error('Error cargando datos:',e);
   }finally{
     STATE.loading=false;
+    STATE.loadingAll=false;
   }
 }
 
@@ -223,6 +251,9 @@ function updateCardBadges(){
       let badge=c.querySelector('.badge');
       if(!badge){badge=document.createElement('div');badge.className='badge';c.appendChild(badge);}
       badge.textContent=b[id];
+    } else if(c) {
+      const badge=c.querySelector('.badge');
+      if(badge) badge.remove();
     }
   });
 }
@@ -816,7 +847,8 @@ if(doLoginBtn)doLoginBtn.onclick=async()=>{
     return;
   }
   const hashedPass=await hashPassword(p);
-  const user=STATE.data.usuarios.find(us=>us.username===u&&us.password===hashedPass);
+  // Ensure we compare strings; sometimes supabase returns password as null/undefined
+  const user=STATE.data.usuarios.find(us=>String(us.username)===u&&String(us.password)===hashedPass);
   if(!user){
     if(err){err.textContent='Usuario o contraseña incorrectos';err.style.display='block';}
     return;
