@@ -753,7 +753,7 @@ function renderAdmin(p){
 function loadUsuarios(){
   const l=$('#listUsuarios');
   if(!l)return;
-  l.innerHTML=STATE.data.usuarios.length?STATE.data.usuarios.map(u=>`<div class="item"><div style="flex:1"><strong>${html(u.nombre)}</strong><div class="muted small">👤 ${html(u.username)} • ${html(u.rol)}</div>${u.placa?`<div class="muted small">🎖️ Placa: ${html(u.placa)}</div>`:''}<div class="muted small">📅 ${new Date(u.fechaCreacion).toLocaleString()}</div></div>${u.username!=='admin'?`<button class="btn-danger btn-ghost" onclick="window.eliminarUsuario(${u.id})">Eliminar</button>`:`<div class="pill" style="font-size:11px">Protegido</div>`}</div>`).join(''):'<div class="muted small">No hay usuarios</div>';
+  l.innerHTML=STATE.data.usuarios.length?STATE.data.usuarios.map(u=>`<div class="item"><div style="flex:1"><strong>${html(u.nombre)}</strong><div class="muted small">👤 ${html(u.username)} • ${html(u.rol)}</div>${u.placa?`<div class="muted small">🎖️ Placa: ${html(u.placa)}</div>`:''}<div class="muted small">📅 ${new Date(u.fechacreacion).toLocaleString()}</div></div>${u.username!=='admin'?`<button class="btn-danger btn-ghost" onclick="window.eliminarUsuario(${u.id})">Eliminar</button>`:`<div class="pill" style="font-size:11px">Protegido</div>`}</div>`).join(''):'<div class="muted small">No hay usuarios</div>';
 }
 
 window.crearUsuario=async function(){
@@ -768,7 +768,7 @@ window.crearUsuario=async function(){
     nombre:n,
     placa:$('#uPlaca')?.value.trim()||null,
     rol:$('#uRol').value,
-    fechaCreacion:new Date().toISOString()
+    fechacreacion:new Date().toISOString()
   });
   if(ok){
     await registrarAuditoria(`Usuario creado: ${u} (${$('#uRol').value})`);
