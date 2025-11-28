@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="es">
 <head>
@@ -11,7 +10,7 @@
 html,body{height:100%;background:radial-gradient(800px 300px at 12% 8%,rgba(124,58,237,0.06),transparent),linear-gradient(180deg,var(--bg-2) 0%,var(--bg-1) 60%);color:var(--text);-webkit-font-smoothing:antialiased}
 .bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .nebula{position:absolute;width:60vmax;height:60vmax;left:-10vmin;top:-8vmin;background:radial-gradient(circle at 30% 30%,rgba(124,58,237,0.24),transparent 30%),radial-gradient(circle at 70% 70%,rgba(6,182,164,0.12),transparent 25%);filter:blur(56px) saturate(120%);animation:float 12s ease-in-out infinite}
-.nebula.r{right:-10vmin;left:auto;top:6vmin;background:radial-gradient(circle at 70% 20%,rgba(255,80,120,0.20),transparent 30%),radial-gradient(circle at 30% 80%,rgba(110,231,183,0.12),transparent 25%);animation-duration:10s;animation-direction:reverse}
+.nebula.r{right:-10vmin;left:auto;top:6vmin;background:radial-gradient(circle at 70% 20%,rgba(255,80,120,0.20),transparent 30%),radial-gradient(circle at 30% 80%,rgba(110,231,183,0.12),transparent 25%);filter:blur(56px) saturate(120%);animation-duration:10s;animation-direction:reverse}
 @keyframes float{0%,100%{transform:translateY(-8px)}50%{transform:translateY(8px)}}
 .wrap{max-width:1200px;margin:22px auto;padding:20px;position:relative;z-index:2}
 header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px;flex-wrap:wrap}
@@ -118,7 +117,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Added a dedicated flag to avoid the race-condition where save/delete set STATE.loading
 // and then call loadAllData which early-returned. Use STATE.loadingAll to control global loads.
-const STATE={currentUser:null,loading:false,loadingAll:false,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],llamadas:[],bolo:[],alertas:[],auditoria:[]}};
+const STATE={currentUser:null,loading:false,loadingAll:false,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],llamadas:[],bolo:[],alertas:[],auditoria:[],servicio:[]}};
 const $=(s,r=document)=>r.querySelector(s);
 const html=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -159,6 +158,24 @@ async function saveData(table,item){
   }catch(e){
     console.error('Error:',e);
     showNotif('✗ Error: '+(e.message||e),'error');
+    return false;
+  }finally{
+    STATE.loading=false;
+  }
+}
+
+async function updateData(table,id,updates){
+  if(STATE.loading) return false;
+  STATE.loading=true;
+  try{
+    const {error}=await supabase.from(table).update(updates).eq('id',id);
+    if(error)throw error;
+    showNotif('✓ Actualizado correctamente','success');
+    await loadAllData();
+    return true;
+  }catch(e){
+    console.error('Error:',e);
+    showNotif('✗ Error al actualizar','error');
     return false;
   }finally{
     STATE.loading=false;
@@ -213,7 +230,7 @@ async function loadAllData(){
   STATE.loadingAll = true;
   STATE.loading = true;
   try{
-    const [usuarios,ciudadanos,multas,arrestos,vehiculos,denuncias,investigaciones,llamadas,bolo,alertas,auditoria]=await Promise.all([
+    const [usuarios,ciudadanos,multas,arrestos,vehiculos,denuncias,investigaciones,llamadas,bolo,alertas,auditoria,servicio]=await Promise.all([
       loadData('usuarios'),
       loadData('ciudadanos'),
       loadData('multas'),
@@ -224,9 +241,23 @@ async function loadAllData(){
       loadData('llamadas'),
       loadData('bolo'),
       loadData('alertas'),
-      loadData('auditoria')
+      loadData('auditoria'),
+      loadData('servicio') // <--- Nuevo: Cargar tabla de servicio
     ]);
-    STATE.data={usuarios:usuarios||[],ciudadanos:ciudadanos||[],multas:multas||[],arrestos:arrestos||[],vehiculos:vehiculos||[],denuncias:denuncias||[],investigaciones:investigaciones||[],llamadas:llamadas||[],bolo:bolo||[],alertas:alertas||[],auditoria:auditoria||[]};
+    STATE.data={
+        usuarios:usuarios||[],
+        ciudadanos:ciudadanos||[],
+        multas:multas||[],
+        arrestos:arrestos||[],
+        vehiculos:vehiculos||[],
+        denuncias:denuncias||[],
+        investigaciones:investigaciones||[],
+        llamadas:llamadas||[],
+        bolo:bolo||[],
+        alertas:alertas||[],
+        auditoria:auditoria||[],
+        servicio:servicio||[] // <--- Nuevo: Datos de servicio
+    };
     updateCardBadges();
   }catch(e){
     console.error('Error cargando datos:',e);
@@ -245,7 +276,7 @@ function showNotif(m,t='info'){
 }
 
 function updateCardBadges(){
-  const b={ciudadanos:STATE.data.ciudadanos.length,multas:STATE.data.multas.length,arrestos:STATE.data.arrestos.length,vehiculos:STATE.data.vehiculos.length,denuncias:STATE.data.denuncias.length,investigaciones:STATE.data.investigaciones.length,llamadas:STATE.data.llamadas.length,bolo:STATE.data.bolo.length,alertas:STATE.data.alertas.length,auditoria:STATE.data.auditoria.length};
+  const b={ciudadanos:STATE.data.ciudadanos.length,servicio:STATE.data.servicio.length,multas:STATE.data.multas.length,arrestos:STATE.data.arrestos.length,vehiculos:STATE.data.vehiculos.length,denuncias:STATE.data.denuncias.length,investigaciones:STATE.data.investigaciones.length,llamadas:STATE.data.llamadas.length,bolo:STATE.data.bolo.length,alertas:STATE.data.alertas.length,auditoria:STATE.data.auditoria.length};
   Object.keys(b).forEach(id=>{
     const c=document.querySelector(`[data-card="${id}"]`);
     if(c&&b[id]>0){
@@ -282,6 +313,7 @@ async function initAdmin(){
 
 const CARDS=[
   {id:'ciudadanos',title:'PDA / Fichas',desc:'Base de datos',icon:'🚓'},
+  {id:'servicio',title:'En Servicio',desc:'Oficiales Activos',icon:'🟢'}, // <--- Tarjeta de Servicio
   {id:'llamadas',title:'Llamadas',desc:'Dispatch',icon:'📞'},
   {id:'buscar',title:'Búsqueda',desc:'Consultar',icon:'🔍'},
   {id:'multas',title:'Multas',desc:'Infracciones',icon:'📋'},
@@ -322,6 +354,7 @@ function openPanel(id){
   
   switch(id){
     case'ciudadanos':renderCiudadanos(p);break;
+    case'servicio':renderServicio(p);break; // <--- Nuevo Case para Servicio
     case'multas':renderMultas(p);break;
     case'arrestos':renderArrestos(p);break;
     case'vehiculos':renderVehiculos(p);break;
@@ -383,6 +416,78 @@ window.eliminarCiu=async function(id){
     loadCiu();
   }
 };
+
+// --- INICIO DE NUEVO CÓDIGO: Panel En Servicio ---
+
+function renderServicio(p){
+  if(!STATE.currentUser){p.innerHTML='<div class="item"><strong>⛔ Acceso Denegado</strong><div class="muted small">Debe iniciar sesión</div></div>';return;}
+
+  // Adaptación: Buscamos al oficial por su ID de usuario, que es la clave foránea.
+  const enServicio = STATE.data.servicio.find(s => s.usuario_id === STATE.currentUser.id);
+
+  p.innerHTML=`
+    <div class="flex" style="justify-content:space-between;margin-bottom:20px">
+      <div><strong style="font-size:20px">🟢 Oficiales En Servicio</strong></div>
+      <button class="btn-ghost" onclick="closePanel()">Cerrar</button>
+    </div>
+    <div style="display:flex;justify-content:center;margin-bottom:20px;gap:12px;flex-wrap:wrap">
+        <button id="btnToggleServicio" class="btn ${enServicio ? 'btn-danger' : ''}" onclick="window.toggleServicio()">${enServicio ? 'Salir de Servicio' : 'Entrar en Servicio'}</button>
+        <div id="statusServicio" class="pill" style="font-size:16px;padding:10px 18px;background:${enServicio ? 'rgba(6,182,164,0.2)' : 'rgba(255,107,107,0.2)'};color:${enServicio ? 'var(--accent-2)' : 'var(--danger)'}">
+          ${enServicio ? `EN SERVICIO (${enServicio.estado || 'Patrulla'})` : 'FUERA DE SERVICIO'}
+        </div>
+    </div>
+    <h4 style="margin-top:20px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:8px">Lista de Oficiales Activos (${STATE.data.servicio.length})</h4>
+    <div id="listServicio" class="list" style="max-height:350px;margin-top:12px"></div>
+    `;
+    loadServicio();
+}
+
+function loadServicio(){
+  const l=$('#listServicio');
+  if(!l)return;
+  // Ordenar por hora de inicio para ver quién entró primero
+  const items=STATE.data.servicio.sort((a, b) => new Date(a.horaInicio) - new Date(b.horaInicio));
+  
+  l.innerHTML=items.length?items.map(s=>`<div class="item" style="border-color:${s.usuario_id===STATE.currentUser.id?'var(--accent)':'rgba(255,255,255,0.03)'}"><div style="flex:1"><strong>${html(s.nombre)} <span class="pill" style="font-size:10px;padding:4px 8px">${html(s.rol)}</span></strong>${s.placa?`<div class="muted small">🎖️ Placa: ${html(s.placa)}</div>`:''}<div class="muted small">Estado: <strong>${html(s.estado || 'Patrulla')}</strong> • Desde: ${new Date(s.horaInicio).toLocaleTimeString()}</div></div></div>`).join(''):'<div class="muted small">No hay oficiales en servicio</div>';
+}
+
+window.toggleServicio=async function(){
+  // Adaptación: Buscar por usuario_id
+  const enServicio = STATE.data.servicio.find(s => s.usuario_id === STATE.currentUser.id);
+  
+  if(!STATE.currentUser.id){
+      showNotif('Error: El usuario no tiene ID. Reintente el login.','error');
+      return;
+  }
+
+  if(enServicio){
+    // Salir de servicio
+    if(!confirm('¿Seguro que quiere salir de servicio?'))return;
+    const ok = await deleteData('servicio', enServicio.id);
+    if(ok){
+        await registrarAuditoria(`Salió de servicio`);
+    }
+  } else {
+    // Entrar en servicio
+    const ok = await saveData('servicio', {
+        usuario_id: STATE.currentUser.id, // ADAPTADO: Usar el ID
+        nombre: STATE.currentUser.nombre,
+        placa: STATE.currentUser.placa || null,
+        rol: STATE.currentUser.rol || 'oficial', // ADAPTADO: Añadir rol
+        estado: 'Patrulla', // ADAPTADO: Estado inicial
+        horaInicio: new Date().toISOString() // ADAPTADO: horaInicio
+    });
+    if(ok){
+        await registrarAuditoria(`Entró en servicio`);
+    }
+  }
+  
+  // Recargar la UI del panel
+  openPanel('servicio');
+};
+
+// --- FIN DE NUEVO CÓDIGO: Panel En Servicio ---
+
 
 function renderMultas(p){
   p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📋 Multas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchMulta" placeholder="Buscar..." style="margin-bottom:12px"><div id="listMultas" class="list"></div></div><div><strong>Nueva Multa</strong><div class="flex flex-col gap-2 mt-3"><input id="mNombre" placeholder="Nombre *"><input id="mDNI" placeholder="DNI *"><select id="mTipo"><option value="">Seleccione tipo</option><option>Exceso velocidad</option><option>Estacionamiento prohibido</option><option>Conducción temeraria</option><option>Sin licencia</option><option>Documentación caducada</option><option>Otro</option></select><input id="mImporte" type="number" placeholder="Importe €"><textarea id="mDesc" placeholder="Descripción"></textarea><button class="btn" onclick="window.crearMulta()">Registrar Multa</button></div></div></div>`;
@@ -832,6 +937,10 @@ if(cancelBtn)cancelBtn.onclick=()=>{
 const logoutBtn=$('#btnLogout');
 if(logoutBtn)logoutBtn.onclick=()=>{
   if(confirm('¿Cerrar sesión?')){
+    // Opcional: Si el oficial estaba en servicio, sacarlo de servicio automáticamente al cerrar sesión
+    const enServicio = STATE.data.servicio.find(s => s.usuario_id === STATE.currentUser.id);
+    if(enServicio) deleteData('servicio', enServicio.id);
+    
     STATE.currentUser=null;
     updateUI();
     const area=$('#expandedArea');
@@ -854,6 +963,12 @@ if(doLoginBtn)doLoginBtn.onclick=async()=>{
     if(err){err.textContent='Usuario o contraseña incorrectos';err.style.display='block';}
     return;
   }
+  // Se asume que el objeto 'user' (que viene de la tabla 'usuarios') contiene la propiedad 'id'
+  if(!user.id){
+      if(err){err.textContent='Error: El usuario no tiene ID registrado. Contacte a soporte.';err.style.display='block';}
+      return;
+  }
+  
   STATE.currentUser=user;
   updateUI();
   const modal=$('#loginModal');
@@ -881,4 +996,3 @@ if(doLoginBtn)doLoginBtn.onclick=async()=>{
 </script>
 </body>
 </html>
-
