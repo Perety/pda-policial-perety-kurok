@@ -293,7 +293,6 @@ const CARDS=[
   {id:'codigos',title:'Códigos',desc:'Señales',icon:'📡'},
   {id:'auditoria',title:'Auditoría',desc:'Registro',icon:'📜',adminOnly:true},
   {id:'admin',title:'Admin',desc:'Usuarios',icon:'⚙️',adminOnly:true}
-  {id: 'servicio', title: 'En servicio', desc: 'Usuarios activos', icon: '🟢'}
 ];
 
 function renderCards(){
@@ -741,38 +740,8 @@ function renderBuscar(p){
 }
 
 function renderCodigos(p){
-  const codigos = [
-    {code:'10-4',desc:'Mensaje recibido'},
-    {code:'10-6',desc:'Ocupado'},
-    {code:'10-8',desc:'En servicio'},
-    {code:'10-15',desc:'Detenido'},
-    {code:'10-20',desc:'Ubicación'},
-    {code:'10-23',desc:'En el sitio'},
-    {code:'10-31',desc:'Crimen en progreso'},
-    {code:'10-99',desc:'Situación peligrosa'}
-  ];
-  p.innerHTML = `<div><strong style="font-size:20px">📡 Códigos Policiales</strong>
-    <div id="codigosList" class="list" style="margin-top:14px">${codigos.map(c=>
-      `<div class="item" style="cursor:pointer" data-code="${c.code}">
-        <strong><span class="badge">${c.code}</span> ${c.desc}</strong>
-      </div>`
-    ).join('')}</div>
-  </div>`;
-
-  document.querySelectorAll('#codigosList .item').forEach(item => {
-    item.onclick = async () => {
-      if (!STATE.currentUser) return showNotif('Debes iniciar sesión', 'error');
-      // Guardamos o notificamos el código
-      await supabase.from('auditoria').insert([{
-        accion: `Código emitido: ${item.getAttribute('data-code')}`,
-        usuario: STATE.currentUser.nombre || STATE.currentUser.username,
-        fecha: new Date().toISOString()
-      }]);
-      showNotif(`🛡️ <b>${STATE.currentUser.nombre || STATE.currentUser.username}</b> envió el código <b>${item.getAttribute('data-code')}</b>`, 'info');
-      // Si usas Realtime, el evento también aparecerá en los demás clientes automáticamente
-    };
-  });
-}
+  const codigos=[{code:'10-4',desc:'Mensaje recibido'},{code:'10-6',desc:'Ocupado'},{code:'10-8',desc:'En servicio'},{code:'10-15',desc:'Detenido'},{code:'10-20',desc:'Ubicación'},{code:'10-23',desc:'En posición'},{code:'10-31',desc:'Crimen en progreso'},{code:'10-32',desc:'Persona armada'},{code:'10-99',desc:'Oficial caído'},{code:'Código 0',desc:'Oficial en peligro'},{code:'Código 1',desc:'Situación bajo control'},{code:'Código 2',desc:'Respuesta urgente'},{code:'Código 3',desc:'Respuesta de emergencia'},{code:'Código 4',desc:'No se requiere asistencia'}];
+  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📡 Códigos Policiales</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${codigos.map(c=>`<div class="item" style="text-align:center;padding:20px;flex-direction:column;align-items:center"><div style="font-size:24px;font-weight:900;color:var(--accent);margin-bottom:8px">${c.code}</div><div class="muted small">${c.desc}</div></div>`).join('')}</div>`;
 }
 
 function renderAdmin(p){
@@ -907,67 +876,8 @@ if(doLoginBtn)doLoginBtn.onclick=async()=>{
     console.error('Error de inicialización:',e);
     showNotif('✗ Error al conectar con Supabase','error');
   }
-  function renderServicio(p) {
-  // Botón simple para entrar o salir de servicio
-  const enServicio = STATE.servicioActual && !STATE.servicioActual.fecha_salida;
-  p.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <strong style="font-size:20px">🟢 Usuarios en servicio</strong>
-      <button class="btn${enServicio?' btn-danger':''}" id="btnTglServ">
-        ${enServicio ? 'Salir de servicio' : 'Entrar en servicio'}
-      </button>
-    </div>
-    <div id="usuariosEnServicio" class="list small"></div>
-  `;
-  document.getElementById('btnTglServ').onclick = async () => {
-    if (!STATE.currentUser) return;
-    if (!enServicio) {
-      // ENTRAR en servicio
-      await supabase.from('servicio').insert([{
-        usuario_id: STATE.currentUser.id,
-        username: STATE.currentUser.username,
-        nombre: STATE.currentUser.nombre || STATE.currentUser.username
-      }]);
-    } else {
-      // SALIR de servicio
-      await supabase.from('servicio')
-        .update({ fecha_salida: new Date().toISOString(), en_servicio: false })
-        .eq('id', STATE.servicioActual.id);
-    }
-    await loadServicio();
-    renderServicio(p);
-  };
-  loadServicioLista();
-}
-
-async function loadServicio() {
-  if(STATE.currentUser) {
-    // Un usuario puede tener varias entradas históricas, buscamos la última "abierta"
-    const { data, error } = await supabase
-      .from('servicio')
-      .select('*')
-      .eq('usuario_id', STATE.currentUser.id)
-      .is('fecha_salida', null)
-      .order('fecha_entrada', { ascending: false });
-    STATE.servicioActual = data && data.length > 0 ? data[0] : null;
-  }
-}
-
-async function loadServicioLista() {
-  // Carga TODOS los usuarios actualmente en servicio
-  const list = document.getElementById('usuariosEnServicio');
-  if(!list) return;
-  const { data, error } = await supabase
-    .from('servicio')
-    .select('username, nombre, fecha_entrada')
-    .is('fecha_salida', null)
-    .order('fecha_entrada', { ascending: true });
-  if(error){ list.innerHTML = '<div class="muted small">Error cargando usuarios en servicio</div>'; return; }
-  list.innerHTML = data && data.length
-    ? data.map(u=>`<div class="item"><strong>${u.nombre||u.username}</strong> <span class="muted small">${(new Date(u.fecha_entrada)).toLocaleTimeString()}</span></div>`).join('')
-    : '<div class="muted small">Nadie en servicio</div>';
-}
 })();
 </script>
 </body>
 </html>
+
