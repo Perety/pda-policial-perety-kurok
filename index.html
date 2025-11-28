@@ -1,883 +1,558 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sistema Policial</title>
-<style>
-:root{--bg-1:#06121a;--bg-2:#071729;--muted:#9fb3bd;--text:#e6f0f6;--accent:#7c3aed;--accent-2:#06b6a4;--danger:#ff6b6b;--glass:rgba(255,255,255,0.03);--card-grad:linear-gradient(180deg,rgba(255,255,255,0.014),rgba(255,255,255,0.006));--radius:12px;--shadow:0 14px 40px rgba(2,6,10,0.6);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:radial-gradient(800px 300px at 12% 8%,rgba(124,58,237,0.06),transparent),linear-gradient(180deg,var(--bg-2) 0%,var(--bg-1) 60%);color:var(--text);-webkit-font-smoothing:antialiased}
-.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.nebula{position:absolute;width:60vmax;height:60vmax;left:-10vmin;top:-8vmin;background:radial-gradient(circle at 30% 30%,rgba(124,58,237,0.24),transparent 30%),radial-gradient(circle at 70% 70%,rgba(6,182,164,0.12),transparent 25%);filter:blur(56px) saturate(120%);animation:float 12s ease-in-out infinite}
-.nebula.r{right:-10vmin;left:auto;top:6vmin;background:radial-gradient(circle at 70% 20%,rgba(255,80,120,0.20),transparent 30%),radial-gradient(circle at 30% 80%,rgba(110,231,183,0.12),transparent 25%);animation-duration:10s;animation-direction:reverse}
-@keyframes float{0%,100%{transform:translateY(-8px)}50%{transform:translateY(8px)}}
-.wrap{max-width:1200px;margin:22px auto;padding:20px;position:relative;z-index:2}
-header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px;flex-wrap:wrap}
-.brand{display:flex;gap:12px;align-items:center}
-.logo{width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,var(--accent-2),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:900;color:#031018;font-size:28px}
-h1{font-size:18px}
-.subtitle{color:var(--muted);font-size:13px}
-.top-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.pill{background:var(--glass);padding:8px 12px;border-radius:999px;font-weight:700;color:var(--muted);font-size:13px}
-.btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#031018;padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-weight:800;transition:all .2s;font-size:13px}
-.btn:hover{transform:translateY(-2px);opacity:0.9}
-.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--muted);padding:7px 12px;border-radius:10px;cursor:pointer;transition:all .2s;font-weight:600;font-size:13px}
-.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
-.btn-danger{background:linear-gradient(90deg,#ef4444,#dc2626);color:white}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:20px}
-.card{background:var(--card-grad);border-radius:var(--radius);padding:20px;border:1px solid rgba(255,255,255,0.04);box-shadow:var(--shadow);min-height:140px;transition:all .18s;cursor:pointer;position:relative}
-.card:hover{transform:translateY(-8px);box-shadow:0 30px 60px rgba(0,0,0,0.7);border-color:rgba(140,80,240,0.12)}
-.card .icon{font-size:42px;margin-bottom:12px}
-.card .title{font-weight:900;font-size:18px;margin-bottom:4px}
-.card .desc{color:var(--muted);font-size:13px}
-.card .badge{position:absolute;top:12px;right:12px;background:rgba(124,58,237,0.2);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:800;color:var(--accent)}
-.expanded{margin-top:20px;border-radius:12px;padding:24px;background:linear-gradient(180deg,rgba(255,255,255,0.012),rgba(255,255,255,0.006));border:1px solid rgba(255,255,255,0.04);box-shadow:0 16px 44px rgba(0,0,0,0.55);animation:slideUp .3s ease}
-@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-.list{display:flex;flex-direction:column;gap:10px;max-height:500px;overflow-y:auto;padding-right:4px}
-.list::-webkit-scrollbar{width:6px}
-.list::-webkit-scrollbar-track{background:rgba(0,0,0,0.2);border-radius:10px}
-.list::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3);border-radius:10px}
-.item{padding:14px;border-radius:10px;background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.03);transition:all .2s;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.item:hover{background:rgba(255,255,255,0.02);border-color:rgba(140,80,240,0.08)}
-input,textarea,select{background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);padding:10px 12px;border-radius:8px;color:var(--text);font:inherit;transition:all .2s;width:100%}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,0.1)}
-textarea{min-height:100px;resize:vertical}
-label{display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--muted)}
-.overlay{position:fixed;inset:0;background:rgba(2,6,10,0.92);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;z-index:9999}
-.overlay.show{display:flex}
-.modal{width:480px;max-width:95%;background:linear-gradient(180deg,#0a1628,#061421);padding:32px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 25px 70px rgba(0,0,0,0.9)}
-.modal h3{font-size:24px;margin-bottom:8px}
-.muted{color:var(--muted)}
-.small{font-size:13px}
-.mt-2{margin-top:8px}
-.mt-3{margin-top:12px}
-.flex{display:flex}
-.flex-col{flex-direction:column}
-.gap-2{gap:8px}
-.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:20px}
-.sync-indicator{position:fixed;bottom:20px;right:20px;background:var(--glass);backdrop-filter:blur(10px);padding:10px 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:8px;z-index:1000}
-.sync-dot{width:8px;height:8px;background:#4ade80;border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-footer{margin-top:40px;text-align:center;color:var(--muted);font-size:12px;padding-bottom:20px}
-@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
-@keyframes slideOut{from{transform:translateX(0)}to{transform:translateX(100%)}}
-</style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema Policial</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+        }
+
+        header {
+            background: #181818;
+            padding: 14px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: #1a1a1a;
+            padding: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid #333;
+            transition: .2s;
+        }
+
+        .card:hover {
+            border-color: #555;
+            background: #222;
+        }
+
+        .list{
+            margin-top:14px;
+            padding-left:0;
+        }
+
+        .item{
+            padding:8px 0;
+            border-bottom:1px solid #333;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .badge{
+            background:#444;
+            padding:3px 8px;
+            border-radius:5px;
+            margin-right:6px;
+        }
+
+        .btn{
+            padding:7px 10px;
+            border-radius:6px;
+            border:none;
+            cursor:pointer;
+            font-weight:bold;
+        }
+
+        .btn-danger{
+            background:#a32626;
+            color:white;
+        }
+
+        .btn-primary{
+            background:#2463c6;
+            color:white;
+        }
+
+        .muted{
+            color:#aaa;
+        }
+
+        .small{
+            font-size:13px;
+        }
+
+        /* Notificaciones */
+        #notifBox{
+            position:fixed;
+            top:24px;
+            right:24px;
+            z-index:9999;
+            width:280px;
+        }
+
+        .notif{
+            background:#222;
+            border-left:4px solid #2a7bf6;
+            padding:10px 14px;
+            margin-top:10px;
+            border-radius:6px;
+            animation:fadein .3s ease;
+        }
+
+        .notif.error{
+            border-color:#e63939;
+        }
+
+        @keyframes fadein{
+            from{opacity:0; transform:translateY(-6px);}
+            to{opacity:1; transform:translateY(0);}
+        }
+    </style>
 </head>
+
 <body>
-<div class="bg"><div class="nebula"></div><div class="nebula r"></div></div>
-<div class="wrap">
+
 <header>
-<div class="brand">
-<div class="logo">🛡️</div>
-<div><h1> 𝐒𝐢𝐬𝐭𝐞𝐦𝐚 𝐏𝐃𝐀 𝐏𝐨𝐥𝐢𝐜𝐢𝐚𝐥 </h1><div class="subtitle">© ᶜʳᵉᵃᵈᵒ ᵖᵒʳ ᴾᵉʳᵉᵗʸ</div></div>
-</div>
-<div class="top-right">
-<div id="userDisplay" class="pill">Conectando...</div>
-<button id="btnLogin" class="btn-ghost">Entrar</button>
-<button id="btnLogout" class="btn-ghost" style="display:none">Salir</button>
-<div id="adminIndicator" style="display:none" class="pill">👑 Administrador</div>
-</div>
+    <h2>🚓 Sistema Policial</h2>
+    <div id="userBox" class="small muted">No autenticado</div>
 </header>
-<div class="grid" id="cardsGrid"></div>
-<div id="expandedArea"></div>
-<footer> © </footer>
+
+<div id="notifBox"></div>
+
+<div class="container">
+    <div id="cards" class="cards"></div>
+    <div id="panel"></div>
 </div>
-<div class="sync-indicator">
-<div class="sync-dot"></div>
-<span class="small">Sincronizado</span>
-</div>
-<div id="loginModal" class="overlay">
-<div class="modal">
-<h3>Iniciar Sesión</h3>
-<div class="muted small">⚠️ Acceso solo para usuarios autorizados</div>
-<div style="margin-top:24px">
-<label>Usuario</label>
-<input id="loginUser" placeholder="Usuario">
-<label style="margin-top:12px">Contraseña</label>
-<input id="loginPass" type="password" placeholder="Contraseña">
-<div class="flex gap-2 mt-3">
-<button id="btnDoLogin" class="btn" style="flex:1">Entrar</button>
-<button id="btnCancelLogin" class="btn-ghost">Cancelar</button>
-</div>
-<div id="loginError" class="muted small mt-2" style="color:var(--danger);display:none"></div>
-</div>
-<div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05)">
-<div class="muted small">⚠️ Solo usuarios autorizados. Contacte al administrador para obtener acceso.</div>
-</div>
-</div>
-</div>
+
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
-const SUPABASE_URL = 'https://lqwyoobsvfbetqqjjdkt.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxxd3lvb2JzdmZiZXRxcWpqZGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzOTczMTIsImV4cCI6MjA3ODk3MzMxMn0.F80qOvvwWnj_HquIM4B3LDBSDVU3_9zmKUVaCfAwXcc';
+const supabaseUrl = "TU_URL_AQUI";
+const supabaseKey = "TU_KEY_AQUI";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Added a dedicated flag to avoid the race-condition where save/delete set STATE.loading
-// and then call loadAllData which early-returned. Use STATE.loadingAll to control global loads.
-const STATE={currentUser:null,loading:false,loadingAll:false,data:{usuarios:[],ciudadanos:[],multas:[],arrestos:[],vehiculos:[],denuncias:[],investigaciones:[],llamadas:[],bolo:[],alertas:[],auditoria:[]}};
-const $=(s,r=document)=>r.querySelector(s);
-const html=s=>(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STATE = {
+    currentUser: null,
+    servicioActual: null
+};
 
-async function hashPassword(pass){
-  const encoder=new TextEncoder();
-  const data=encoder.encode(pass+'POLICE_SECURE_SALT_2024_X9Z');
-  const hash=await crypto.subtle.digest('SHA-256',data);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+function showNotif(msg, type="info"){
+    const box = document.getElementById("notifBox");
+    const div = document.createElement("div");
+    div.className = "notif " + (type === "error" ? "error" : "");
+    div.innerHTML = msg;
+    box.appendChild(div);
+    setTimeout(()=>div.remove(), 3500);
 }
+/******************************************
+ *     TARJETAS (CARDS) DEL SISTEMA
+ ******************************************/
+const CARDS = [
+    { id: 'usuarios', title: 'Usuarios', desc: 'Gestión de usuarios', icon: '👤' },
+    { id: 'codigos', title: 'Códigos', desc: 'Códigos policiales', icon: '📡' },
 
-async function loadData(table){
-  if(STATE.loading) {
-    // It's safe to still fetch a specific table even if other loads are ongoing.
-    // We don't block here because callers may need fresh data.
-  }
-  try{
-    const {data,error}=await supabase.from(table).select('*').order('id',{ascending:false});
-    if(error)throw error;
-    return data||[];
-  }catch(e){
-    console.error(`Error cargando ${table}:`,e);
-    return[];
-  }
-}
-
-async function saveData(table,item){
-  if(STATE.loading) {
-    // allow operations but avoid spamming: we keep the guard but don't block saving
-  }
-  STATE.loading=true;
-  try{
-    const {error}=await supabase.from(table).insert([item]);
-    if(error)throw error;
-    showNotif('✓ Guardado correctamente','success');
-    // Ensure loadAllData can run even if STATE.loading was true
-    await loadAllData();
-    return true;
-  }catch(e){
-    console.error('Error:',e);
-    showNotif('✗ Error: '+(e.message||e),'error');
-    return false;
-  }finally{
-    STATE.loading=false;
-  }
-}
-
-async function deleteData(table,id){
-  if(STATE.loading) {
-    // allow delete attempts; will be serialized by Supabase
-  }
-  STATE.loading=true;
-  try{
-    const {error}=await supabase.from(table).delete().eq('id',id);
-    if(error)throw error;
-    showNotif('✓ Eliminado','success');
-    await loadAllData();
-    return true;
-  }catch(e){
-    console.error('Error:',e);
-    showNotif('✗ Error al eliminar','error');
-    return false;
-  }finally{
-    STATE.loading=false;
-  }
-}
-
-async function registrarAuditoria(a){
-  try{
-    await supabase.from('auditoria').insert([{accion:a,usuario:STATE.currentUser?.nombre||'Sistema',fecha:new Date().toISOString()}]);
-  }catch(e){
-    console.error('Error auditoría:',e);
-  }
-}
-
-async function loadAllData(){
-  // Prevent overlapping full loads
-  if(STATE.loadingAll) {
-    // If a full load is already in progress, wait for it to finish by polling the flag.
-    // This avoids early-returning without updating STATE.data (root cause of the bug).
-    let waited = 0;
-    while(STATE.loadingAll && waited < 3000) { // wait up to 3s
-      await new Promise(r => setTimeout(r, 50));
-      waited += 50;
-    }
-    if(STATE.loadingAll) {
-      // if still loading after timeout, continue anyway to avoid stalling UI
-      console.warn('loadAllData: previous full load still running; proceeding with a new load.');
-    } else {
-      return; // previous load finished and updated data
-    }
-  }
-  STATE.loadingAll = true;
-  STATE.loading = true;
-  try{
-    const [usuarios,ciudadanos,multas,arrestos,vehiculos,denuncias,investigaciones,llamadas,bolo,alertas,auditoria]=await Promise.all([
-      loadData('usuarios'),
-      loadData('ciudadanos'),
-      loadData('multas'),
-      loadData('arrestos'),
-      loadData('vehiculos'),
-      loadData('denuncias'),
-      loadData('investigaciones'),
-      loadData('llamadas'),
-      loadData('bolo'),
-      loadData('alertas'),
-      loadData('auditoria')
-    ]);
-    STATE.data={usuarios:usuarios||[],ciudadanos:ciudadanos||[],multas:multas||[],arrestos:arrestos||[],vehiculos:vehiculos||[],denuncias:denuncias||[],investigaciones:investigaciones||[],llamadas:llamadas||[],bolo:bolo||[],alertas:alertas||[],auditoria:auditoria||[]};
-    updateCardBadges();
-  }catch(e){
-    console.error('Error cargando datos:',e);
-  }finally{
-    STATE.loading=false;
-    STATE.loadingAll=false;
-  }
-}
-
-function showNotif(m,t='info'){
-  const n=document.createElement('div');
-  n.style.cssText=`position:fixed;top:80px;right:20px;z-index:10000;padding:14px 24px;border-radius:10px;background:${t==='success'?'linear-gradient(90deg,#10b981,#059669)':'linear-gradient(90deg,#ef4444,#dc2626)'};color:white;font-weight:700;box-shadow:0 10px 40px rgba(0,0,0,0.6);animation:slideIn 0.3s ease`;
-  n.textContent=m;
-  document.body.appendChild(n);
-  setTimeout(()=>{n.style.animation='slideOut 0.3s ease';setTimeout(()=>n.remove(),300)},3000);
-}
-
-function updateCardBadges(){
-  const b={ciudadanos:STATE.data.ciudadanos.length,multas:STATE.data.multas.length,arrestos:STATE.data.arrestos.length,vehiculos:STATE.data.vehiculos.length,denuncias:STATE.data.denuncias.length,investigaciones:STATE.data.investigaciones.length,llamadas:STATE.data.llamadas.length,bolo:STATE.data.bolo.length,alertas:STATE.data.alertas.length,auditoria:STATE.data.auditoria.length};
-  Object.keys(b).forEach(id=>{
-    const c=document.querySelector(`[data-card="${id}"]`);
-    if(c&&b[id]>0){
-      let badge=c.querySelector('.badge');
-      if(!badge){badge=document.createElement('div');badge.className='badge';c.appendChild(badge);}
-      badge.textContent=b[id];
-    } else if(c) {
-      const badge=c.querySelector('.badge');
-      if(badge) badge.remove();
-    }
-  });
-}
-
-async function initAdmin(){
-  try{
-    const users=await loadData('usuarios');
-    if(users.length===0){
-      const hashedPass=await hashPassword('PoliceSecure2024!');
-      await supabase.from('usuarios').insert([{
-        username:'admin',
-        password:hashedPass,
-        nombre:'Administrador del Sistema',
-        rol:'admin',
-        placa:'ADMIN-001',
-        fechacreacion:new Date().toISOString()
-      }]);
-      console.log('✓ Usuario admin creado');
-      console.log('Credenciales: admin / PoliceSecure2024!');
-    }
-  }catch(e){
-    console.error('Error inicializando admin:',e);
-  }
-}
-
-const CARDS=[
-  {id:'ciudadanos',title:'PDA / Fichas',desc:'Base de datos',icon:'🚓'},
-  {id:'llamadas',title:'Llamadas',desc:'Dispatch',icon:'📞'},
-  {id:'buscar',title:'Búsqueda',desc:'Consultar',icon:'🔍'},
-  {id:'multas',title:'Multas',desc:'Infracciones',icon:'📋'},
-  {id:'arrestos',title:'Arrestos',desc:'Detenciones',icon:'⛓️'},
-  {id:'vehiculos',title:'Vehículos',desc:'Registro',icon:'🚗'},
-  {id:'bolo',title:'BOLO',desc:'Buscados',icon:'🚨'},
-  {id:'denuncias',title:'Denuncias',desc:'Reportes',icon:'📝'},
-  {id:'investigaciones',title:'Investigaciones',desc:'Casos',icon:'🔬'},
-  {id:'alertas',title:'Alertas',desc:'Avisos',icon:'⚠️'},
-  {id:'codigos',title:'Códigos',desc:'Señales',icon:'📡'},
-  {id:'auditoria',title:'Auditoría',desc:'Registro',icon:'📜',adminOnly:true},
-  {id:'admin',title:'Admin',desc:'Usuarios',icon:'⚙️',adminOnly:true}
+    /* 🔵 NUEVA CARD: EN SERVICIO */
+    { id: 'servicio', title: 'En servicio', desc: 'Usuarios activos', icon: '🟢' },
 ];
 
 function renderCards(){
-  const g=$('#cardsGrid');
-  if(!g)return;
-  g.innerHTML='';
-  CARDS.forEach(c=>{
-    if(c.adminOnly&&(!STATE.currentUser||STATE.currentUser.rol!=='admin'))return;
-    const e=document.createElement('div');
-    e.className='card';
-    e.setAttribute('data-card',c.id);
-    e.innerHTML=`<div class="icon">${c.icon}</div><div class="title">${c.title}</div><div class="desc">${c.desc}</div>`;
-    e.onclick=()=>openPanel(c.id);
-    g.appendChild(e);
-  });
-  updateCardBadges();
+    const cards = document.getElementById("cards");
+    cards.innerHTML = CARDS.map(c => `
+        <div class="card" data-id="${c.id}">
+            <h3>${c.icon} ${c.title}</h3>
+            <p class="muted small">${c.desc}</p>
+        </div>
+    `).join("");
+
+    document.querySelectorAll(".card").forEach(card=>{
+        card.onclick = ()=>{
+            openPanel(card.getAttribute("data-id"));
+        };
+    });
 }
 
 function openPanel(id){
-  const a=$('#expandedArea');
-  if(!a)return;
-  a.innerHTML='';
-  const p=document.createElement('div');
-  p.className='expanded';
-  a.appendChild(p);
-  
-  switch(id){
-    case'ciudadanos':renderCiudadanos(p);break;
-    case'multas':renderMultas(p);break;
-    case'arrestos':renderArrestos(p);break;
-    case'vehiculos':renderVehiculos(p);break;
-    case'llamadas':renderLlamadas(p);break;
-    case'bolo':renderBolo(p);break;
-    case'denuncias':renderDenuncias(p);break;
-    case'investigaciones':renderInvestigaciones(p);break;
-    case'alertas':renderAlertas(p);break;
-    case'codigos':renderCodigos(p);break;
-    case'admin':renderAdmin(p);break;
-    case'auditoria':renderAuditoria(p);break;
-    case'buscar':renderBuscar(p);break;
-    default:break;
-  }
-  setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),100);
+    const panel = document.getElementById("panel");
+
+    if(id === "codigos"){
+        renderCodigos(panel);
+    }
+    else if(id === "servicio"){
+        renderServicio(panel);
+    }
+    else{
+        panel.innerHTML = "<p class='muted'>Panel no implementado.</p>";
+    }
 }
 
-function renderCiudadanos(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">🚓 PDA / Fichas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchCiu" placeholder="Buscar por nombre o DNI..." style="margin-bottom:12px"><div id="listCiu" class="list"></div></div><div><strong>Nueva Ficha</strong><div class="flex flex-col gap-2 mt-3"><input id="cNombre" placeholder="Nombre completo *"><input id="cDNI" placeholder="DNI *"><input id="cFecha" type="date"><input id="cDir" placeholder="Dirección"><input id="cTel" placeholder="Teléfono"><button class="btn" onclick="window.crearCiu()">Registrar Ficha</button></div></div></div>`;
-  loadCiu();
-  const search=$('#searchCiu');
-  if(search)search.oninput=loadCiu;
+/******************************************
+ *          LOGIN SIMPLIFICADO
+ ******************************************/
+async function fakeLogin(){
+    const { data, error } = await supabase
+        .from("usuarios")
+        .select("*")
+        .limit(1);
+
+    if(data && data.length){
+        STATE.currentUser = data[0];
+        document.getElementById("userBox").textContent =
+            `Conectado como ${STATE.currentUser.username}`;
+    } else {
+        showNotif("No existe ningún usuario en la tabla usuarios.", "error");
+    }
+
+    /* Cargar estado actual EN SERVICIO */
+    await loadServicio();
 }
 
-function loadCiu(){
-  const l=$('#listCiu');
-  if(!l)return;
-  const q=($('#searchCiu')?.value||'').toLowerCase();
-  const items=STATE.data.ciudadanos.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.dni||'').toLowerCase().includes(q));
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(c=>`<div class="item"><div style="flex:1"><strong>${html(c.nombre)}</strong><div class="muted small">DNI: ${html(c.dni)}${c.telefono?' • Tel: '+html(c.telefono):''}</div>${c.direccion?`<div class="muted small">📍 ${html(c.direccion)}</div>`:''}${c.fechaNacimiento?`<div class="muted small">🎂 ${html(c.fechaNacimiento)}</div>`:''}</div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarCiu(${c.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay fichas registradas</div>';
+fakeLogin();
+
+/******************************************
+ *      PARTE 1 — SISTEMA EN SERVICIO
+ ******************************************/
+async function loadServicio(){
+    if(!STATE.currentUser) return;
+
+    const { data } = await supabase
+        .from("servicio")
+        .select("*")
+        .eq("usuario_id", STATE.currentUser.id)
+        .is("fecha_salida", null)
+        .order("fecha_entrada", { ascending: false });
+
+    STATE.servicioActual = (data && data.length) ? data[0] : null;
 }
 
-window.crearCiu=async function(){
-  const n=$('#cNombre')?.value.trim(),d=$('#cDNI')?.value.trim();
-  if(!n||!d){showNotif('Complete nombre y DNI','error');return;}
-  const ok=await saveData('ciudadanos',{
-    nombre:n,
-    dni:d,
-    fechaNacimiento:$('#cFecha')?.value||null,
-    direccion:$('#cDir')?.value.trim()||null,
-    telefono:$('#cTel')?.value.trim()||null,
-    oficialRegistro:STATE.currentUser?.nombre||'Sistema',
-    fechaRegistro:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Ficha creada: ${n} (${d})`);
-    $('#cNombre').value=$('#cDNI').value=$('#cFecha').value=$('#cDir').value=$('#cTel').value='';
-    loadCiu();
-  }
-};
+async function loadServicioLista(){
+    const list = document.getElementById("usuariosEnServicio");
+    if(!list) return;
 
-window.eliminarCiu=async function(id){
-  if(!confirm('¿Eliminar esta ficha permanentemente?'))return;
-  const c=STATE.data.ciudadanos.find(x=>x.id===id);
-  const ok=await deleteData('ciudadanos',id);
-  if(ok){
-    await registrarAuditoria(`Ficha eliminada: ${c?.nombre}`);
-    loadCiu();
-  }
-};
+    const { data, error } = await supabase
+        .from("servicio")
+        .select("username, nombre, fecha_entrada")
+        .is("fecha_salida", null)
+        .order("fecha_entrada", { ascending: true });
 
-function renderMultas(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📋 Multas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchMulta" placeholder="Buscar..." style="margin-bottom:12px"><div id="listMultas" class="list"></div></div><div><strong>Nueva Multa</strong><div class="flex flex-col gap-2 mt-3"><input id="mNombre" placeholder="Nombre *"><input id="mDNI" placeholder="DNI *"><select id="mTipo"><option value="">Seleccione tipo</option><option>Exceso velocidad</option><option>Estacionamiento prohibido</option><option>Conducción temeraria</option><option>Sin licencia</option><option>Documentación caducada</option><option>Otro</option></select><input id="mImporte" type="number" placeholder="Importe €"><textarea id="mDesc" placeholder="Descripción"></textarea><button class="btn" onclick="window.crearMulta()">Registrar Multa</button></div></div></div>`;
-  loadMultas();
-  const s=$('#searchMulta');
-  if(s)s.oninput=loadMultas;
+    if(error){
+        list.innerHTML = `<div class="muted small">Error cargando usuarios en servicio</div>`;
+        return;
+    }
+
+    list.innerHTML = data && data.length
+        ? data.map(u => `
+            <div class="item">
+                <strong>${u.nombre || u.username}</strong>
+                <span class="muted small">${
+                    (new Date(u.fecha_entrada)).toLocaleTimeString()
+                }</span>
+            </div>
+        `).join("")
+        : `<div class="muted small">Nadie en servicio</div>`;
 }
 
-function loadMultas(){
-  const l=$('#listMultas');
-  if(!l)return;
-  const q=($('#searchMulta')?.value||'').toLowerCase();
-  const items=STATE.data.multas.filter(m=>(m.nombre||'').toLowerCase().includes(q)||(m.dni||'').toLowerCase().includes(q)||(m.tipo||'').toLowerCase().includes(q));
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(m=>`<div class="item"><div style="flex:1"><strong>${html(m.nombre)}</strong><div class="muted small">DNI: ${html(m.dni)} • ${html(m.tipo)}</div><div class="muted small">💰 ${m.importe}€${m.descripcion?' • '+html(m.descripcion):''}</div><div class="muted small">📅 ${new Date(m.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarMulta(${m.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay multas registradas</div>';
+function renderServicio(panel){
+    const enServicio = STATE.servicioActual && !STATE.servicioActual.fecha_salida;
+
+    panel.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <strong style="font-size:20px">🟢 Usuarios en servicio</strong>
+            <button class="btn ${enServicio ? 'btn-danger' : 'btn-primary'}" id="btnTglServ">
+                ${enServicio ? 'Salir de servicio' : 'Entrar en servicio'}
+            </button>
+        </div>
+
+        <div id="usuariosEnServicio" class="list small"></div>
+    `;
+
+    document.getElementById("btnTglServ").onclick = async ()=>{
+
+        if(!STATE.currentUser) return;
+
+        if(!enServicio){
+            /* ENTRAR */
+            await supabase.from("servicio").insert([{
+                usuario_id: STATE.currentUser.id,
+                username: STATE.currentUser.username,
+                nombre: STATE.currentUser.nombre || STATE.currentUser.username
+            }]);
+        } else {
+            /* SALIR */
+            await supabase.from("servicio")
+                .update({
+                    fecha_salida: new Date().toISOString(),
+                    en_servicio: false
+                })
+                .eq("id", STATE.servicioActual.id);
+        }
+
+        await loadServicio();
+        renderServicio(panel);
+    };
+
+    loadServicioLista();
 }
+      /* ============================
+         PANEL: EN SERVICIO
+      ============================ */
 
-window.crearMulta=async function(){
-  const n=$('#mNombre')?.value.trim(),d=$('#mDNI')?.value.trim(),t=$('#mTipo').value;
-  if(!n||!d||!t){showNotif('Complete campos obligatorios','error');return;}
-  const ok=await saveData('multas',{
-    nombre:n,
-    dni:d,
-    tipo:t,
-    importe:parseFloat($('#mImporte')?.value)||0,
-    descripcion:$('#mDesc')?.value.trim()||null,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Multa registrada: ${n} - ${t}`);
-    $('#mNombre').value=$('#mDNI').value=$('#mTipo').value=$('#mImporte').value=$('#mDesc').value='';
-    loadMultas();
-  }
-};
+      async function loadServicio() {
+        if (STATE.currentUser) {
+          const { data, error } = await supabase
+            .from("servicio")
+            .select("*")
+            .eq("usuario_id", STATE.currentUser.id)
+            .is("fecha_salida", null)
+            .order("fecha_entrada", { ascending: false });
 
-window.eliminarMulta=async function(id){
-  if(!confirm('¿Eliminar esta multa?'))return;
-  const ok=await deleteData('multas',id);
-  if(ok){
-    await registrarAuditoria('Multa eliminada');
-    loadMultas();
-  }
-};
+          STATE.servicioActual = data && data.length > 0 ? data[0] : null;
+        }
+      }
 
-function renderArrestos(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">⛓️ Arrestos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchArresto" placeholder="Buscar..." style="margin-bottom:12px"><div id="listArrestos" class="list"></div></div><div><strong>Nuevo Arresto</strong><div class="flex flex-col gap-2 mt-3"><input id="aNombre" placeholder="Nombre *"><input id="aDNI" placeholder="DNI *"><input id="aCargo" placeholder="Cargo/Delito *"><input id="aFianza" type="number" placeholder="Fianza €"><select id="aEstado"><option value="detenido">Detenido</option><option value="procesado">Procesado</option><option value="liberado">Liberado</option></select><textarea id="aDesc" placeholder="Detalles del arresto"></textarea><button class="btn" onclick="window.crearArresto()">Registrar Arresto</button></div></div></div>`;
-  loadArrestos();
-  const s=$('#searchArresto');
-  if(s)s.oninput=loadArrestos;
-}
+      async function loadServicioLista() {
+        const list = document.getElementById("usuariosEnServicio");
+        if (!list) return;
 
-function loadArrestos(){
-  const l=$('#listArrestos');
-  if(!l)return;
-  const q=($('#searchArresto')?.value||'').toLowerCase();
-  const items=STATE.data.arrestos.filter(a=>(a.nombre||'').toLowerCase().includes(q)||(a.dni||'').toLowerCase().includes(q)||(a.cargo||'').toLowerCase().includes(q));
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.nombre)}</strong><div class="muted small">DNI: ${html(a.dni)} • ⚖️ ${html(a.cargo)}</div><div class="muted small">Estado: ${html(a.estado)}${a.fianza?' • Fianza: '+a.fianza+'€':''}</div>${a.descripcion?`<div class="muted small">${html(a.descripcion)}</div>`:''}<div class="muted small">📅 ${new Date(a.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarArresto(${a.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay arrestos registrados</div>';
-}
+        const { data, error } = await supabase
+          .from("servicio")
+          .select("username, nombre, fecha_entrada")
+          .is("fecha_salida", null)
+          .order("fecha_entrada", { ascending: true });
 
-window.crearArresto=async function(){
-  const n=$('#aNombre')?.value.trim(),d=$('#aDNI')?.value.trim(),c=$('#aCargo')?.value.trim();
-  if(!n||!d||!c){showNotif('Complete campos obligatorios','error');return;}
-  const ok=await saveData('arrestos',{
-    nombre:n,
-    dni:d,
-    cargo:c,
-    fianza:parseFloat($('#aFianza')?.value)||0,
-    estado:$('#aEstado').value,
-    descripcion:$('#aDesc')?.value.trim()||null,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Arresto registrado: ${n} - ${c}`);
-    $('#aNombre').value=$('#aDNI').value=$('#aCargo').value=$('#aFianza').value=$('#aDesc').value='';
-    loadArrestos();
-  }
-};
+        if (error) {
+          list.innerHTML =
+            '<div class="muted small">Error cargando usuarios en servicio</div>';
+          return;
+        }
 
-window.eliminarArresto=async function(id){
-  if(!confirm('¿Eliminar este arresto?'))return;
-  const ok=await deleteData('arrestos',id);
-  if(ok){
-    await registrarAuditoria('Arresto eliminado');
-    loadArrestos();
-  }
-};
+        list.innerHTML =
+          data && data.length
+            ? data
+                .map(
+                  (u) => `
+            <div class="item">
+              <strong>${u.nombre || u.username}</strong>
+              <span class="muted small">${new Date(
+                u.fecha_entrada
+              ).toLocaleTimeString()}</span>
+            </div>
+          `
+                )
+                .join("")
+            : '<div class="muted small">Nadie en servicio</div>';
+      }
 
-function renderVehiculos(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">🚗 Vehículos</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><input id="searchVehiculo" placeholder="Buscar por matrícula..." style="margin-bottom:12px"><div id="listVehiculos" class="list"></div></div><div><strong>Registrar Vehículo</strong><div class="flex flex-col gap-2 mt-3"><input id="vMatricula" placeholder="Matrícula *"><input id="vMarca" placeholder="Marca"><input id="vModelo" placeholder="Modelo"><input id="vColor" placeholder="Color"><input id="vPropietario" placeholder="Propietario"><input id="vDNI" placeholder="DNI Propietario"><select id="vEstado"><option value="legal">Legal</option><option value="buscado">Buscado</option><option value="incautado">Incautado</option></select><button class="btn" onclick="window.crearVehiculo()">Registrar</button></div></div></div>`;
-  loadVehiculos();
-  const s=$('#searchVehiculo');
-  if(s)s.oninput=loadVehiculos;
-}
+      function renderServicio(panel) {
+        const enServicio =
+          STATE.servicioActual && !STATE.servicioActual.fecha_salida;
 
-function loadVehiculos(){
-  const l=$('#listVehiculos');
-  if(!l)return;
-  const q=($('#searchVehiculo')?.value||'').toLowerCase();
-  const items=STATE.data.vehiculos.filter(v=>(v.matricula||'').toLowerCase().includes(q)||(v.propietario||'').toLowerCase().includes(q));
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(v=>`<div class="item"><div style="flex:1"><strong>🚗 ${html(v.matricula)}</strong><div class="muted small">${html(v.marca||'')} ${html(v.modelo||'')}${v.color?' • Color: '+html(v.color):''}</div>${v.propietario?`<div class="muted small">👤 ${html(v.propietario)}${v.dniPropietario?' ('+html(v.dniPropietario)+')':''}</div>`:''}<div class="muted small">Estado: <strong>${html(v.estado)}</strong></div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarVehiculo(${v.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay vehículos registrados</div>';
-}
+        panel.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <strong style="font-size:20px">🟢 Usuarios en servicio</strong>
+            <button class="btn${enServicio ? " btn-danger" : ""}" id="btnTglServ">
+              ${enServicio ? "Salir de servicio" : "Entrar en servicio"}
+            </button>
+          </div>
+          <div id="usuariosEnServicio" class="list small"></div>
+        `;
 
-window.crearVehiculo=async function(){
-  const m=$('#vMatricula')?.value.trim();
-  if(!m){showNotif('Ingrese la matrícula','error');return;}
-  const ok=await saveData('vehiculos',{
-    matricula:m,
-    marca:$('#vMarca')?.value.trim()||null,
-    modelo:$('#vModelo')?.value.trim()||null,
-    color:$('#vColor')?.value.trim()||null,
-    propietario:$('#vPropietario')?.value.trim()||null,
-    dniPropietario:$('#vDNI')?.value.trim()||null,
-    estado:$('#vEstado').value,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Vehículo registrado: ${m}`);
-    $('#vMatricula').value=$('#vMarca').value=$('#vModelo').value=$('#vColor').value=$('#vPropietario').value=$('#vDNI').value='';
-    loadVehiculos();
-  }
-};
+        document.getElementById("btnTglServ").onclick = async () => {
+          if (!STATE.currentUser) return;
 
-window.eliminarVehiculo=async function(id){
-  if(!confirm('¿Eliminar este vehículo?'))return;
-  const ok=await deleteData('vehiculos',id);
-  if(ok){
-    await registrarAuditoria('Vehículo eliminado');
-    loadVehiculos();
-  }
-};
+          if (!enServicio) {
+            await supabase.from("servicio").insert([
+              {
+                usuario_id: STATE.currentUser.id,
+                username: STATE.currentUser.username,
+                nombre:
+                  STATE.currentUser.nombre || STATE.currentUser.username,
+              },
+            ]);
+          } else {
+            await supabase
+              .from("servicio")
+              .update({
+                fecha_salida: new Date().toISOString(),
+                en_servicio: false,
+              })
+              .eq("id", STATE.servicioActual.id);
+          }
 
-function renderLlamadas(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📞 Llamadas / Dispatch</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listLlamadas" class="list"></div></div><div><strong>Nueva Llamada</strong><div class="flex flex-col gap-2 mt-3"><select id="lTipo"><option value="">Tipo</option><option>10-31 Crimen en progreso</option><option>10-32 Persona armada</option><option>Accidente tráfico</option><option>Alteración orden público</option><option>Robo</option><option>Violencia doméstica</option><option>Otra emergencia</option></select><input id="lUbicacion" placeholder="Ubicación *"><input id="lReportante" placeholder="Quien reporta"><textarea id="lDetalles" placeholder="Detalles de la llamada"></textarea><button class="btn" onclick="window.crearLlamada()">Registrar Llamada</button></div></div></div>`;
-  loadLlamadas();
-}
+          await loadServicio();
+          renderServicio(panel);
+        };
 
-function loadLlamadas(){
-  const l=$('#listLlamadas');
-  if(!l)return;
-  const items=STATE.data.llamadas;
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(ll=>`<div class="item"><div style="flex:1"><strong>📞 ${html(ll.tipo)}</strong><div class="muted small">📍 ${html(ll.ubicacion)}${ll.reportante?' • Reporta: '+html(ll.reportante):''}</div>${ll.detalles?`<div class="muted small">${html(ll.detalles)}</div>`:''}<div class="muted small">📅 ${new Date(ll.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarLlamada(${ll.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay llamadas registradas</div>';
-}
+        loadServicioLista();
+      }
 
-window.crearLlamada=async function(){
-  const t=$('#lTipo').value,u=$('#lUbicacion')?.value.trim();
-  if(!t||!u){showNotif('Complete tipo y ubicación','error');return;}
-  const ok=await saveData('llamadas',{
-    tipo:t,
-    ubicacion:u,
-    reportante:$('#lReportante')?.value.trim()||null,
-    detalles:$('#lDetalles')?.value.trim()||null,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Llamada registrada: ${t} en ${u}`);
-    $('#lTipo').value=$('#lUbicacion').value=$('#lReportante').value=$('#lDetalles').value='';
-    loadLlamadas();
-  }
-};
+      /* ============================
+         PANEL: CÓDIGOS POLICIALES
+      ============================ */
 
-window.eliminarLlamada=async function(id){
-  if(!confirm('¿Eliminar esta llamada?'))return;
-  const ok=await deleteData('llamadas',id);
-  if(ok){
-    await registrarAuditoria('Llamada eliminada');
-    loadLlamadas();
-  }
-};
+      function renderCodigos(p) {
+        const codigos = [
+          { code: "10-4", desc: "Mensaje recibido" },
+          { code: "10-6", desc: "Ocupado" },
+          { code: "10-8", desc: "En servicio" },
+          { code: "10-15", desc: "Detenido" },
+          { code: "10-20", desc: "Ubicación" },
+          { code: "10-23", desc: "En el sitio" },
+          { code: "10-31", desc: "Crimen en progreso" },
+          { code: "10-99", desc: "Situación peligrosa" },
+        ];
 
-function renderBolo(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">🚨 BOLO (Be On the Look Out)</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listBolo" class="list"></div></div><div><strong>Nuevo BOLO</strong><div class="flex flex-col gap-2 mt-3"><input id="bNombre" placeholder="Nombre/Alias *"><input id="bDNI" placeholder="DNI"><select id="bTipo"><option value="">Tipo</option><option>Sospechoso armado</option><option>Fugitivo</option><option>Vehículo robado</option><option>Persona desaparecida</option><option>Otro</option></select><textarea id="bDescripcion" placeholder="Descripción física, vestimenta, vehículo..."></textarea><input id="bUltimaVez" placeholder="Última vez visto"><button class="btn" onclick="window.crearBolo()">Emitir BOLO</button></div></div></div>`;
-  loadBolo();
-}
+        p.innerHTML = `
+        <div>
+          <strong style="font-size:20px">📡 Códigos Policiales</strong>
+          <div id="codigosList" class="list" style="margin-top:14px">
+            ${codigos
+              .map(
+                (c) => `
+              <div class="item" style="cursor:pointer" data-code="${c.code}">
+                <strong><span class="badge">${c.code}</span> ${c.desc}</strong>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
 
-function loadBolo(){
-  const l=$('#listBolo');
-  if(!l)return;
-  const items=STATE.data.bolo;
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(b=>`<div class="item" style="border-color:rgba(255,107,107,0.3)"><div style="flex:1"><strong>🚨 ${html(b.nombre)}</strong>${b.dni?`<div class="muted small">DNI: ${html(b.dni)}</div>`:''}${b.tipo?`<div class="muted small">Tipo: ${html(b.tipo)}</div>`:''}${b.descripcion?`<div class="muted small">${html(b.descripcion)}</div>`:''}${b.ultimaVez?`<div class="muted small">Última vez: ${html(b.ultimaVez)}</div>`:''}<div class="muted small">📅 ${new Date(b.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarBolo(${b.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay BOLOs activos</div>';
-}
+        document.querySelectorAll("#codigosList .item").forEach((item) => {
+          item.onclick = async () => {
+            if (!STATE.currentUser)
+              return showNotif("Debes iniciar sesión", "error");
 
-window.crearBolo=async function(){
-  const n=$('#bNombre')?.value.trim();
-  if(!n){showNotif('Ingrese nombre o alias','error');return;}
-  const ok=await saveData('bolo',{
-    nombre:n,
-    dni:$('#bDNI')?.value.trim()||null,
-    tipo:$('#bTipo').value||null,
-    descripcion:$('#bDescripcion')?.value.trim()||null,
-    ultimaVez:$('#bUltimaVez')?.value.trim()||null,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`BOLO emitido: ${n}`);
-    $('#bNombre').value=$('#bDNI').value=$('#bTipo').value=$('#bDescripcion').value=$('#bUltimaVez').value='';
-    loadBolo();
-  }
-};
+            await supabase.from("auditoria").insert([
+              {
+                accion: `Código emitido: ${item.getAttribute("data-code")}`,
+                usuario:
+                  STATE.currentUser.nombre ||
+                  STATE.currentUser.username,
+                fecha: new Date().toISOString(),
+              },
+            ]);
 
-window.eliminarBolo=async function(id){
-  if(!confirm('¿Eliminar este BOLO?'))return;
-  const ok=await deleteData('bolo',id);
-  if(ok){
-    await registrarAuditoria('BOLO eliminado');
-    loadBolo();
-  }
-};
+            showNotif(
+              `🛡️ <b>${
+                STATE.currentUser.nombre || STATE.currentUser.username
+              }</b> envió el código <b>${item.getAttribute("data-code")}</b>`,
+              "info"
+            );
+          };
+        });
+      }
+        <!-- ============================== -->
+        <!-- 📡 SISTEMA DE CÓDIGOS REPARADO -->
+        <!-- ============================== -->
 
-function renderDenuncias(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📝 Denuncias</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listDenuncias" class="list"></div></div><div><strong>Nueva Denuncia</strong><div class="flex flex-col gap-2 mt-3"><input id="dDenunciante" placeholder="Denunciante *"><input id="dDNIDenunciante" placeholder="DNI Denunciante"><input id="dDenunciado" placeholder="Denunciado"><select id="dTipo"><option value="">Tipo</option><option>Robo</option><option>Agresión</option><option>Amenazas</option><option>Daños</option><option>Estafa</option><option>Otro</option></select><textarea id="dHechos" placeholder="Hechos relatados..."></textarea><button class="btn" onclick="window.crearDenuncia()">Registrar Denuncia</button></div></div></div>`;
-  loadDenuncias();
-}
+        <script>
+        function renderCodigos(p){
+            const codigos = [
+                {code:'10-4',desc:'Mensaje recibido'},
+                {code:'10-6',desc:'Ocupado'},
+                {code:'10-8',desc:'En servicio'},
+                {code:'10-15',desc:'Detenido'},
+                {code:'10-20',desc:'Ubicación'},
+                {code:'10-23',desc:'En el sitio'},
+                {code:'10-31',desc:'Crimen en progreso'},
+                {code:'10-99',desc:'Situación peligrosa'}
+            ];
 
-function loadDenuncias(){
-  const l=$('#listDenuncias');
-  if(!l)return;
-  const items=STATE.data.denuncias;
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(d=>`<div class="item"><div style="flex:1"><strong>${html(d.tipo||'Denuncia')}</strong><div class="muted small">Denunciante: ${html(d.denunciante)}${d.dniDenunciante?' ('+html(d.dniDenunciante)+')':''}</div>${d.denunciado?`<div class="muted small">Denunciado: ${html(d.denunciado)}</div>`:''}${d.hechos?`<div class="muted small">${html(d.hechos)}</div>`:''}<div class="muted small">📅 ${new Date(d.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarDenuncia(${d.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay denuncias registradas</div>';
-}
+            p.innerHTML = `
+                <div>
+                    <strong style="font-size:20px">📡 Códigos Policiales</strong>
+                    <div id="codigosList" class="list" style="margin-top:14px">
+                        ${codigos
+                            .map(c => `
+                                <div class="item" style="cursor:pointer" data-code="${c.code}">
+                                    <strong><span class="badge">${c.code}</span> ${c.desc}</strong>
+                                </div>
+                            `)
+                            .join("")}
+                    </div>
+                </div>
+            `;
 
-window.crearDenuncia=async function(){
-  const den=$('#dDenunciante')?.value.trim();
-  if(!den){showNotif('Ingrese denunciante','error');return;}
-  const ok=await saveData('denuncias',{
-    denunciante:den,
-    dniDenunciante:$('#dDNIDenunciante')?.value.trim()||null,
-    denunciado:$('#dDenunciado')?.value.trim()||null,
-    tipo:$('#dTipo').value||null,
-    hechos:$('#dHechos')?.value.trim()||null,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Denuncia registrada: ${den}`);
-    $('#dDenunciante').value=$('#dDNIDenunciante').value=$('#dDenunciado').value=$('#dTipo').value=$('#dHechos').value='';
-    loadDenuncias();
-  }
-};
+            document.querySelectorAll('#codigosList .item').forEach(item => {
+                item.onclick = async () => {
+                    if (!STATE.currentUser) {
+                        return showNotif('Debes iniciar sesión', 'error');
+                    }
 
-window.eliminarDenuncia=async function(id){
-  if(!confirm('¿Eliminar esta denuncia?'))return;
-  const ok=await deleteData('denuncias',id);
-  if(ok){
-    await registrarAuditoria('Denuncia eliminada');
-    loadDenuncias();
-  }
-};
+                    const codigo = item.getAttribute('data-code');
 
-function renderInvestigaciones(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">🔬 Investigaciones</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listInvestigaciones" class="list"></div></div><div><strong>Nueva Investigación</strong><div class="flex flex-col gap-2 mt-3"><input id="iCaso" placeholder="Nombre del caso *"><select id="iEstado"><option value="abierta">Abierta</option><option value="en_curso">En curso</option><option value="cerrada">Cerrada</option></select><textarea id="iDetalles" placeholder="Detalles de la investigación..."></textarea><input id="iSospechosos" placeholder="Sospechosos"><button class="btn" onclick="window.crearInvestigacion()">Crear Investigación</button></div></div></div>`;
-  loadInvestigaciones();
-}
+                    await supabase.from('auditoria').insert([
+                        {
+                            accion: `Código emitido: ${codigo}`,
+                            usuario: STATE.currentUser.nombre || STATE.currentUser.username,
+                            fecha: new Date().toISOString()
+                        }
+                    ]);
 
-function loadInvestigaciones(){
-  const l=$('#listInvestigaciones');
-  if(!l)return;
-  const items=STATE.data.investigaciones;
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(i=>`<div class="item"><div style="flex:1"><strong>🔬 ${html(i.caso)}</strong><div class="muted small">Estado: ${html(i.estado)}${i.sospechosos?' • Sospechosos: '+html(i.sospechosos):''}</div>${i.detalles?`<div class="muted small">${html(i.detalles)}</div>`:''}<div class="muted small">📅 ${new Date(i.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarInvestigacion(${i.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay investigaciones activas</div>';
-}
+                    showNotif(
+                        `🛡️ <b>${STATE.currentUser.nombre || STATE.currentUser.username}</b> envió el código <b>${codigo}</b>`,
+                        'info'
+                    );
+                };
+            });
+        }
+        </script>
+        <!-- ============================== -->
+        <!-- 🔚 CIERRE DEL SCRIPT PRINCIPAL -->
+        <!-- ============================== -->
 
-window.crearInvestigacion=async function(){
-  const c=$('#iCaso')?.value.trim();
-  if(!c){showNotif('Ingrese nombre del caso','error');return;}
-  const ok=await saveData('investigaciones',{
-    caso:c,
-    estado:$('#iEstado').value,
-    detalles:$('#iDetalles')?.value.trim()||null,
-    sospechosos:$('#iSospechosos')?.value.trim()||null,
-    investigador:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Investigación creada: ${c}`);
-    $('#iCaso').value=$('#iDetalles').value=$('#iSospechosos').value='';
-    loadInvestigaciones();
-  }
-};
+        <script>
+        // =============================
+        // 🔄 RENDERIZADOR GENERAL
+        // =============================
+        function renderPanel(id) {
+            const panel = document.getElementById("panel");
+            panel.innerHTML = "";
 
-window.eliminarInvestigacion=async function(id){
-  if(!confirm('¿Eliminar esta investigación?'))return;
-  const ok=await deleteData('investigaciones',id);
-  if(ok){
-    await registrarAuditoria('Investigación eliminada');
-    loadInvestigaciones();
-  }
-};
+            const card = CARDS.find(c => c.id === id);
+            if (!card) return;
 
-function renderAlertas(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">⚠️ Alertas</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><div id="listAlertas" class="list"></div></div><div><strong>Nueva Alerta</strong><div class="flex flex-col gap-2 mt-3"><select id="aTipo"><option value="">Tipo</option><option>⚠️ General</option><option>🚨 Emergencia</option><option>ℹ️ Información</option><option>⚡ Urgente</option></select><input id="aTitulo" placeholder="Título *"><textarea id="aMensaje" placeholder="Mensaje de la alerta..."></textarea><button class="btn" onclick="window.crearAlerta()">Emitir Alerta</button></div></div></div>`;
-  loadAlertas();
-}
+            if (card.id === "servicio") renderServicio(panel);
+            else if (card.id === "codigos") renderCodigos(panel);
+            else if (card.render) card.render(panel);
+        }
 
-function loadAlertas(){
-  const l=$('#listAlertas');
-  if(!l)return;
-  const items=STATE.data.alertas;
-  const isA=STATE.currentUser&&STATE.currentUser.rol==='admin';
-  l.innerHTML=items.length?items.map(a=>`<div class="item" style="border-color:rgba(255,165,0,0.3)"><div style="flex:1"><strong>${html(a.tipo||'⚠️')} ${html(a.titulo)}</strong>${a.mensaje?`<div class="muted small">${html(a.mensaje)}</div>`:''}<div class="muted small">📅 ${new Date(a.fecha).toLocaleString()}</div></div>${isA?`<button class="btn-danger btn-ghost" onclick="window.eliminarAlerta(${a.id})">Eliminar</button>`:''}</div>`).join(''):'<div class="muted small">No hay alertas activas</div>';
-}
+        // =============================
+        // 🌐 INICIALIZACIÓN GLOBAL
+        // =============================
+        async function init() {
+            await loadUser();
+            await loadServicio();
 
-window.crearAlerta=async function(){
-  const t=$('#aTitulo')?.value.trim();
-  if(!t){showNotif('Ingrese título','error');return;}
-  const ok=await saveData('alertas',{
-    tipo:$('#aTipo').value||'⚠️ General',
-    titulo:t,
-    mensaje:$('#aMensaje')?.value.trim()||null,
-    oficial:STATE.currentUser?.nombre||'Sistema',
-    fecha:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Alerta emitida: ${t}`);
-    $('#aTipo').value=$('#aTitulo').value=$('#aMensaje').value='';
-    loadAlertas();
-  }
-};
+            const menu = document.getElementById("menu");
+            menu.innerHTML = CARDS.map(c =>
+                `<div class="card" data-id="${c.id}">
+                    <div class="icon">${c.icon}</div>
+                    <div class="title">${c.title}</div>
+                    <div class="desc">${c.desc}</div>
+                </div>`
+            ).join("");
 
-window.eliminarAlerta=async function(id){
-  if(!confirm('¿Eliminar esta alerta?'))return;
-  const ok=await deleteData('alertas',id);
-  if(ok){
-    await registrarAuditoria('Alerta eliminada');
-    loadAlertas();
-  }
-};
+            document.querySelectorAll(".card").forEach(card => {
+                card.onclick = () => renderPanel(card.getAttribute("data-id"));
+            });
+        }
 
-function renderBuscar(p){
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">🔍 Búsqueda Global</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><input id="globalSearch" placeholder="Buscar en todas las bases de datos..." style="font-size:16px;padding:14px;margin-bottom:16px"><div id="searchResults"></div>`;
-  $('#globalSearch').oninput=()=>{
-    const q=$('#globalSearch').value.toLowerCase(),r=$('#searchResults');
-    if(q.length<2){r.innerHTML='<div class="muted small">Escriba al menos 2 caracteres para buscar</div>';return}
-    const c=STATE.data.ciudadanos.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q));
-    const m=STATE.data.multas.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q));
-    const a=STATE.data.arrestos.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q));
-    const v=STATE.data.vehiculos.filter(x=>(x.matricula||'').toLowerCase().includes(q)||(x.propietario||'').toLowerCase().includes(q));
-    const b=STATE.data.bolo.filter(x=>(x.nombre||'').toLowerCase().includes(q)||(x.dni||'').toLowerCase().includes(q));
-    let h='';
-    if(c.length)h+=`<h4 style="margin-top:12px">🚓 Fichas (${c.length})</h4><div class="list">${c.slice(0,5).map(x=>`<div class="item"><strong>${html(x.nombre)}</strong><div class="muted small">DNI: ${html(x.dni)}</div></div>`).join('')}</div>`;
-    if(m.length)h+=`<h4 style="margin-top:16px">📋 Multas (${m.length})</h4><div class="list">${m.slice(0,5).map(x=>`<div class="item"><strong>${html(x.nombre)}</strong><div class="muted small">${html(x.tipo)} • ${x.importe}€</div></div>`).join('')}</div>`;
-    if(a.length)h+=`<h4 style="margin-top:16px">⛓️ Arrestos (${a.length})</h4><div class="list">${a.slice(0,5).map(x=>`<div class="item"><strong>${html(x.nombre)}</strong><div class="muted small">${html(x.cargo)}</div></div>`).join('')}</div>`;
-    if(v.length)h+=`<h4 style="margin-top:16px">🚗 Vehículos (${v.length})</h4><div class="list">${v.slice(0,5).map(x=>`<div class="item"><strong>${html(x.matricula)}</strong><div class="muted small">${html(x.marca||'')} ${html(x.modelo||'')}</div></div>`).join('')}</div>`;
-    if(b.length)h+=`<h4 style="margin-top:16px">🚨 BOLO (${b.length})</h4><div class="list">${b.slice(0,5).map(x=>`<div class="item"><strong>${html(x.nombre)}</strong><div class="muted small">${html(x.tipo||'')}</div></div>`).join('')}</div>`;
-    r.innerHTML=h||'<div class="muted small">Sin resultados</div>';
-  };
-}
+        init();
+        </script>
 
-function renderCodigos(p){
-  const codigos=[{code:'10-4',desc:'Mensaje recibido'},{code:'10-6',desc:'Ocupado'},{code:'10-8',desc:'En servicio'},{code:'10-15',desc:'Detenido'},{code:'10-20',desc:'Ubicación'},{code:'10-23',desc:'En posición'},{code:'10-31',desc:'Crimen en progreso'},{code:'10-32',desc:'Persona armada'},{code:'10-99',desc:'Oficial caído'},{code:'Código 0',desc:'Oficial en peligro'},{code:'Código 1',desc:'Situación bajo control'},{code:'Código 2',desc:'Respuesta urgente'},{code:'Código 3',desc:'Respuesta de emergencia'},{code:'Código 4',desc:'No se requiere asistencia'}];
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📡 Códigos Policiales</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${codigos.map(c=>`<div class="item" style="text-align:center;padding:20px;flex-direction:column;align-items:center"><div style="font-size:24px;font-weight:900;color:var(--accent);margin-bottom:8px">${c.code}</div><div class="muted small">${c.desc}</div></div>`).join('')}</div>`;
-}
-
-function renderAdmin(p){
-  if(!STATE.currentUser||STATE.currentUser.rol!=='admin'){p.innerHTML='<div class="item"><strong>⛔ Acceso Denegado</strong><div class="muted small">Solo administradores</div></div>';return;}
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">⚙️ Administración</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="grid-2"><div><strong>Usuarios del Sistema</strong><div id="listUsuarios" class="list" style="margin-top:12px"></div></div><div><strong>Crear Usuario</strong><div class="flex flex-col gap-2 mt-3"><input id="uUsername" placeholder="Usuario *"><input id="uPassword" type="password" placeholder="Contraseña *"><input id="uNombre" placeholder="Nombre completo *"><input id="uPlaca" placeholder="Número de placa"><select id="uRol"><option value="oficial">Oficial</option><option value="sargento">Sargento</option><option value="capitan">Capitán</option><option value="admin">Administrador</option></select><button class="btn" onclick="window.crearUsuario()">Crear Usuario</button></div><div class="muted small mt-3">⚠️ Las contraseñas se almacenan hasheadas</div></div></div>`;
-  loadUsuarios();
-}
-
-function loadUsuarios(){
-  const l=$('#listUsuarios');
-  if(!l)return;
-  l.innerHTML=STATE.data.usuarios.length?STATE.data.usuarios.map(u=>`<div class="item"><div style="flex:1"><strong>${html(u.nombre)}</strong><div class="muted small">👤 ${html(u.username)} • ${html(u.rol)}</div>${u.placa?`<div class="muted small">🎖️ Placa: ${html(u.placa)}</div>`:''}<div class="muted small">📅 ${new Date(u.fechacreacion).toLocaleString()}</div></div>${u.username!=='admin'?`<button class="btn-danger btn-ghost" onclick="window.eliminarUsuario(${u.id})">Eliminar</button>`:`<div class="pill" style="font-size:11px">Protegido</div>`}</div>`).join(''):'<div class="muted small">No hay usuarios</div>';
-}
-
-window.crearUsuario=async function(){
-  const u=$('#uUsername')?.value.trim(),p=$('#uPassword')?.value.trim(),n=$('#uNombre')?.value.trim();
-  if(!u||!p||!n){showNotif('Complete todos los campos obligatorios','error');return;}
-  if(p.length<6){showNotif('La contraseña debe tener al menos 6 caracteres','error');return;}
-  if(STATE.data.usuarios.find(us=>us.username===u)){showNotif('El usuario ya existe','error');return;}
-  const hashedPass=await hashPassword(p);
-  const ok=await saveData('usuarios',{
-    username:u,
-    password:hashedPass,
-    nombre:n,
-    placa:$('#uPlaca')?.value.trim()||null,
-    rol:$('#uRol').value,
-    fechacreacion:new Date().toISOString()
-  });
-  if(ok){
-    await registrarAuditoria(`Usuario creado: ${u} (${$('#uRol').value})`);
-    $('#uUsername').value=$('#uPassword').value=$('#uNombre').value=$('#uPlaca').value='';
-    showNotif(`✓ Usuario ${u} creado correctamente`,'success');
-    loadUsuarios();
-  }
-};
-
-window.eliminarUsuario=async function(id){
-  const u=STATE.data.usuarios.find(us=>us.id===id);
-  if(u?.username==='admin'){showNotif('No se puede eliminar el usuario admin','error');return;}
-  if(!confirm(`¿Eliminar usuario ${u?.username}?`))return;
-  const ok=await deleteData('usuarios',id);
-  if(ok){
-    await registrarAuditoria(`Usuario eliminado: ${u?.username}`);
-    loadUsuarios();
-  }
-};
-
-function renderAuditoria(p){
-  if(!STATE.currentUser||STATE.currentUser.rol!=='admin'){p.innerHTML='<div class="item"><strong>⛔ Acceso Denegado</strong><div class="muted small">Solo administradores</div></div>';return;}
-  p.innerHTML=`<div class="flex" style="justify-content:space-between;margin-bottom:20px"><div><strong style="font-size:20px">📜 Registro de Auditoría</strong></div><button class="btn-ghost" onclick="closePanel()">Cerrar</button></div><div class="muted small mb-2">Registro completo de todas las acciones del sistema</div><div id="listAuditoria" class="list"></div>`;
-  loadAuditoria();
-}
-
-function loadAuditoria(){
-  const l=$('#listAuditoria');
-  if(!l)return;
-  l.innerHTML=STATE.data.auditoria.length?STATE.data.auditoria.slice(0,200).map(a=>`<div class="item"><div style="flex:1"><strong>${html(a.accion)}</strong><div class="muted small">👤 ${html(a.usuario)}</div><div class="muted small">📅 ${new Date(a.fecha).toLocaleString()}</div></div></div>`).join(''):'<div class="muted small">No hay registros de auditoría</div>';
-}
-
-window.closePanel=function(){
-  const area=$('#expandedArea');
-  if(area)area.innerHTML='';
-  updateCardBadges();
-};
-
-function updateUI(){
-  const ud=$('#userDisplay'),bl=$('#btnLogin'),bo=$('#btnLogout'),ai=$('#adminIndicator');
-  if(ud)ud.textContent=STATE.currentUser?`${STATE.currentUser.nombre} (${STATE.currentUser.rol})`:'Sin conexión';
-  if(bl)bl.style.display=STATE.currentUser?'none':'inline-block';
-  if(bo)bo.style.display=STATE.currentUser?'inline-block':'none';
-  if(ai)ai.style.display=STATE.currentUser&&STATE.currentUser.rol==='admin'?'inline-block':'none';
-  renderCards();
-}
-
-const loginBtn=$('#btnLogin');
-if(loginBtn)loginBtn.onclick=()=>{
-  const modal=$('#loginModal');
-  if(modal)modal.classList.add('show');
-};
-
-const cancelBtn=$('#btnCancelLogin');
-if(cancelBtn)cancelBtn.onclick=()=>{
-  const modal=$('#loginModal');
-  if(modal)modal.classList.remove('show');
-};
-
-const logoutBtn=$('#btnLogout');
-if(logoutBtn)logoutBtn.onclick=()=>{
-  if(confirm('¿Cerrar sesión?')){
-    STATE.currentUser=null;
-    updateUI();
-    const area=$('#expandedArea');
-    if(area)area.innerHTML='';
-    showNotif('Sesión cerrada','info');
-  }
-};
-
-const doLoginBtn=$('#btnDoLogin');
-if(doLoginBtn)doLoginBtn.onclick=async()=>{
-  const u=$('#loginUser')?.value.trim(),p=$('#loginPass')?.value.trim(),err=$('#loginError');
-  if(!u||!p){
-    if(err){err.textContent='Complete todos los campos';err.style.display='block';}
-    return;
-  }
-  const hashedPass=await hashPassword(p);
-  // Ensure we compare strings; sometimes supabase returns password as null/undefined
-  const user=STATE.data.usuarios.find(us=>String(us.username)===u&&String(us.password)===hashedPass);
-  if(!user){
-    if(err){err.textContent='Usuario o contraseña incorrectos';err.style.display='block';}
-    return;
-  }
-  STATE.currentUser=user;
-  updateUI();
-  const modal=$('#loginModal');
-  if(modal)modal.classList.remove('show');
-  const lu=$('#loginUser'),lp=$('#loginPass');
-  if(lu)lu.value='';
-  if(lp)lp.value='';
-  if(err)err.style.display='none';
-  showNotif(`✓ Bienvenido ${user.nombre}`,'success');
-  await registrarAuditoria(`Login: ${user.username}`);
-};
-
-(async()=>{
-  try{
-    showNotif('Conectando con Supabase...','info');
-    await initAdmin();
-    await loadAllData();
-    updateUI();
-    showNotif('✓ Sistema conectado correctamente','success');
-  }catch(e){
-    console.error('Error de inicialización:',e);
-    showNotif('✗ Error al conectar con Supabase','error');
-  }
-})();
-</script>
-</body>
+    </body>
 </html>
-
